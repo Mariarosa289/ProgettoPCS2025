@@ -22,7 +22,7 @@ bool CheckInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c) 
 }
 
 //***************************************************************************
-/// Genera l'icosaedro iniziale NON NORMALIZZATO = OK
+/// Genera l'icosaedro iniziale NON NORMALIZZATO centrato nell'origine
 
 void build_ico(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) {
     const double phi = (1.0 + sqrt(5.0)) / 2.0;   // per calcolare la sezione aurea phi => per avere l'icosaedro centrato in (0,0,0)
@@ -39,20 +39,59 @@ void build_ico(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) 
     };
 }
 
+/// Genera l'ottaedro iniziale NORMALIZZATO centrato nell'origine (per proprietà dell'ottaedro)
+
+void build_octa(vector<array<double, 3>>& vertici,vector<array<int, 3>>& facce) {
+    vertici = {
+        { 1,  0,  0},  // vertice 0
+        {-1,  0,  0},  // vertice 1
+        { 0,  1,  0},  // vertice 2
+        { 0, -1,  0},  // vertice 3
+        { 0,  0,  1},  // vertice 4 (alto)
+        { 0,  0, -1}   // vertice 5 (basso)
+    };
+
+    // 8 facce triangolari, definite dai vertici
+    facce = {
+        {0, 2, 4}, {2, 1, 4}, {1, 3, 4}, {3, 0, 4}, // facce superiori
+        {2, 0, 5}, {1, 2, 5}, {3, 1, 5}, {0, 3, 5}  // facce inferiori
+    };
+}
+
+/// Genera il tetraedo iniziale NON NORMALIZZATO centrato nell'origine
+
+void build_tetra(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) {
+    vertici = {
+        {  1,  1,  1 },
+        { -1, -1,  1 },
+        { -1,  1, -1 },
+        {  1, -1, -1 }
+    };
+
+    facce = {
+        {0, 1, 2},
+        {0, 3, 1},
+        {0, 2, 3},
+        {1, 3, 2}
+    };
+}
+
+
+
 //******************* */
-/// Funzione per salvare i punti normalizzati : RIVEDERE PER Vertex
+/// Funzione per salvare i vertici normalizzati = OK
 
 unsigned int salva_vertice(const array<double,3>& coord,
-                           map<array<double,3>, unsigned int>& Cell0D,
+                           map<array<double,3>, unsigned int>& map0D,
                            PolygonalMesh& mesh,
                            unsigned int& vid) 
     {
-        auto norm = Normalize(coord);
-        if (Cell0D.count(norm)) 
-            return Cell0D[norm];
+        double norm = Normalize(coord);
+        if (map0D.count(norm)) 
+            return map0D[norm];  // se c'è il punto, non aggiorna il vid
         Vertex v{vid, norm};
         mesh.vertices.push_back(v);
-        return Cell0D[norm] = vid++;
+        return map0D[norm] = vid++;  // vid utilizzato -> aggiorniamo il vid
     }
 // ***************************************************************************
 /// Costruzione del geodetico classe I
@@ -76,10 +115,10 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
     mesh = PolygonalMesh();
 
 
-    unsigned int vid = 0, eid = 0, fid = 0;   //RIVEDERE
+    unsigned int vid = 0, eid = 0, fid = 0;   //inizializzare gli ID dei vertici, dei lati e delle facce
 
-    // Inizializziamo Cell0D
-    map<array<double, 3>, unsigned int> Cell0D;   //Dizionario che lega id e vertice
+    // Inizializziamo la mappa per i vertici
+    map<array<double, 3>, unsigned int> map0D;   //Dizionario che lega id e vertice
 
 
 
@@ -92,19 +131,19 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
         for (unsigned int i = 0; i <= b; ++i) {
             grid[i].resize(i+1);
             for (unsigned int j = 0; j <= i; ++j) {
-                double u = 1.0 - static_cast<double>(i)/b;
-                double v = static_cast<double>(i - j)/b;
+                double u = 1.0 - static_cast<double>(i)/b; // coordinate baricentriche 
+                double v = static_cast<double>(i - j)/b; // static_cast <double> serve per far si che la divisione dia un risultato double
                 double w = static_cast<double>(j)/b;
                 array<double,3> P = {
                     u*A[0] + v*B[0] + w*C[0],
                     u*A[1] + v*B[1] + w*C[1],
                     u*A[2] + v*B[2] + w*C[2]
                 };
-                grid[i][j] = salva_vertice(P);   //RIPARTIRE DA QUI
+                grid[i][j] = salva_vertice(P);   
             }
         }
-
-        for (unsigned int i = 0; i < b; ++i) {
+// TRIANGOLAZIONE DELLA FACCIA PRINCIPALE IN BASE A b (salvando ogni sottotriangolo/faccia attraverso i vertici)
+        for (unsigned int i = 0; i < b; ++i) { //itera sui vertici  dei sottotriangoli attraverso lo schema sugli appunti
             for (unsigned int j = 0; j < i + 1; ++j) {
                 unsigned int v1 = grid[i][j];
                 unsigned int v2 = grid[i+1][j];
@@ -117,23 +156,23 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
             }
         }
     }
-
-    map<pair<unsigned int,unsigned int>, unsigned int> edgeMap;
+/// COSTRUZIONE  DEGLI SPIGOLI
+    map<pair<unsigned int,unsigned int>, unsigned int> map1D;
     for (auto& f : mesh.faces) {
         for (int i = 0; i < 3; ++i) {
-            unsigned int a = f.vertices[i];
+            unsigned int a = f.vertices[i];// serve per collegare tutti i vertici del triangolo
             unsigned int b = f.vertices[(i+1)%3];
-            if (a > b) swap(a, b);
-            auto key = make_pair(a, b);
-            if (!edgeMap.count(key)) {
+            if (a > b) swap(a, b);// fa si che non ci siano duplicati essendo i lati non orientati
+            auto key = make_pair(a, b); // crea la coppia senza specificare il tipo di a e di b
+            if (!map1D.count(key)) {   // qui vede se c'è la key e se non c'è la aggiunge
                 mesh.edges.push_back({eid, a, b});
-                edgeMap[key] = eid++;
+                map1D[key] = eid++;
             }
-            f.edges.push_back(edgeMap[key]);
+            f.edges.push_back(map1D[key]);
         }
     }
-
-    Polyhedron poly{0};
+/// COSTRUZIONE DEL POLIEDRO
+    Polyhedron poly{0}; // Inizializzo il poliedro
     for (auto& v : mesh.vertices) poly.vertices.push_back(v.id);
     for (auto& e : mesh.edges) poly.edges.push_back(e.id);
     for (auto& f : mesh.faces) poly.faces.push_back(f.id);
@@ -146,220 +185,3 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
 
 
 
-// ***************************************************************************
-bool ImportCell1Ds(PolygonalMesh& mesh)
-{
-	cout << "ImportCell1Ds..." << endl;
-
-    ifstream file("./Cell1Ds.csv");
-
-    if(file.fail())
-        return false;
-
-    list<string> listLines;
-    string line;
-    while (getline(file, line))
-        listLines.push_back(line);
-
-    file.close();
-
-    // remove header
-    listLines.pop_front();
-
-    mesh.NumCell1Ds = listLines.size();
-
-    if (mesh.NumCell1Ds == 0)
-    {
-        cerr << "There is no cell 1D" << endl;
-        return false;
-    }
-
-    mesh.Cell1DsId.reserve(mesh.NumCell1Ds);
-    mesh.Cell1DsExtrema = Eigen::Matrixxi(2, mesh.NumCell1Ds);
-
-    for (const string& line : listLines)
-    {
-        istringstream converter(line);
-		string token;
-
-        unsigned int id;
-        unsigned int marker;
-        Vector2i vertices;
-		
-		getline(converter, token, ';');
-		id = stoi(token);
-
-		getline(converter, token, ';');
-		marker = stoi(token);
-
-		getline(converter, token, ';');
-		mesh.Cell1DsExtrema(0, id) = stod(token);
-		
-		getline(converter, token, ';');
-		mesh.Cell1DsExtrema(1, id) = stod(token);
-        
-		cout << "id: " << id << ", marker: " << marker << ", extrema: (" 
-		<< mesh.Cell1DsExtrema(0, id) << ", " 
-		<< mesh.Cell1DsExtrema(1, id) << ")" << endl;
-        mesh.Cell1DsId.push_back(id);
-
-        /// Memorizza i marker
-        if(marker != 0)
-        {
-            const auto it = mesh.MarkerCell1Ds.find(marker);
-            if(it == mesh.MarkerCell1Ds.end())
-            {
-                mesh.MarkerCell1Ds.insert({marker, {id}});
-            }
-            else
-            {
-                // mesh.MarkerCell1Ds[marker].push_back(id);
-                it->second.push_back(id);
-            }
-        }
-    }
-	for (const auto& entry : mesh.MarkerCell1Ds) {
-		cout << "Marker: " << entry.first << " - IDs: ";
-		for (const auto& id : entry.second)
-			cout << id << " ";
-		cout << endl;
-	}
-	cout << "Cell1DsExtrema dimensioni: " 
-     << mesh.Cell1DsExtrema.rows() << "x" 
-     << mesh.Cell1DsExtrema.cols() << endl;
-
-    return true;
-}
-// ***************************************************************************
-bool ImportCell2Ds(PolygonalMesh& mesh)
-{
-	cout << "ImportCell2Ds..." << endl;
-
-    ifstream file;
-    file.open("./Cell2Ds.csv");
-
-    if(file.fail())
-        return false;
-
-    list<string> listLines;
-    string line;
-    while (getline(file, line))
-        listLines.push_back(line);
-
-    file.close();
-
-    // remove header
-    listLines.pop_front();
-
-    mesh.NumCell2Ds = listLines.size();
-
-    if (mesh.NumCell2Ds == 0)
-    {
-        cerr << "There is no cell 2D" << endl;
-        return false;
-    }
-
-    mesh.Cell2DsId.reserve(mesh.NumCell2Ds);
-    mesh.Cell2DsVertices.reserve(mesh.NumCell2Ds);
-    mesh.Cell2DsEdges.reserve(mesh.NumCell2Ds);
-
-    for (const string& line : listLines)
-    {
-        istringstream converter(line);
-		string token;
-		
-        unsigned int id;
-		unsigned int marker;
-		unsigned int NumVert;
-		unsigned int NumEdg;
-        vector<int> vertices;
-        vector<int> edges;
-
-        getline(converter, token, ';');
-		id = stoi(token);
-
-		getline(converter, token, ';');
-		marker = stoi(token);
-
-		getline(converter, token, ';');
-		NumVert = stoi(token);
-		
-		vertices.resize(NumVert);
-		
-        for (unsigned int i = 0; i < NumVert; ++i)
-		{
-			getline(converter, token, ';');
-			vertices[i] = stoi(token);
-		}
-		
-		getline(converter, token, ';');
-		NumEdg = stoi(token);
-		edges.resize(NumEdg);
-		
-		
-        for (unsigned int i = 0; i < NumEdg; ++i)
-		{
-			getline(converter, token, ';');
-			edges[i] = stoi(token);
-			if (edges[i] == 0)
-			{
-				return false;
-			}
-		}
-
-        mesh.Cell2DsId.push_back(id);
-        mesh.Cell2DsVertices.push_back(vertices);
-        mesh.Cell2DsEdges.push_back(edges);
-		mesh.Cell2DsNumEdges.push_back(NumEdg);
-				
-		vertices.clear();
-		edges.clear();
-		/// Memorizza i marker
-        if(marker != 0)
-        {
-            const auto it = mesh.MarkerCell2Ds.find(marker);
-            if(it == mesh.MarkerCell2Ds.end())
-            {
-                mesh.MarkerCell2Ds.insert({marker, {id}});
-            }
-            else
-            {
-                // mesh.MarkerCell2Ds[marker].push_back(id);
-                it->second.push_back(id);
-            }
-        }
-    }
-		
-	
-
-    return true;
-}
-
-bool Area(PolygonalMesh& mesh)
-
-{
-	unsigned int END = mesh.Cell2DsId.size();
-	unsigned int STARTER=0;
-	for(unsigned int i =0;i<END;++i)
-	{
-		unsigned int SizeArea=0;
-		unsigned int EDGES=mesh.Cell2DsNumEdges[i];
-		for (unsigned int j=STARTER;j<STARTER+EDGES-2;++j)
-		{
-			SizeArea+=mesh.Cell0DsCoordinates(0,j)*mesh.Cell0DsCoordinates(1,j+1)-mesh.Cell0DsCoordinates(0,j+1)*mesh.Cell0DsCoordinates(1,j);
-			
-		}
-		
-		SizeArea+=mesh.Cell0DsCoordinates(0,STARTER+EDGES-1)*mesh.Cell0DsCoordinates(1,STARTER)-mesh.Cell0DsCoordinates(0,STARTER)*mesh.Cell0DsCoordinates(1,STARTER+EDGES-1);
-		STARTER+=EDGES;
-		if (SizeArea == 0)
-			return false;
-
-		
-		
-		
-	}
-	return true;
-}
-
-}
