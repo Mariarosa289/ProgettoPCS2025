@@ -1,36 +1,38 @@
+// RIVEDERE LE #include
+
 #pragma once
 #include <vector>
 #include <array>
 
-struct Vertex {
+struct Cell0D {
     unsigned int id;
-    std::array<double, 3> coordinates;
-    bool ShortPath = false;
+    array<double, 3> coordinate;
+    bool ShortPath = false;   // SCRIVI CODICE DEL CAMMINO MINIMO 
 };
 
-struct Edge {
+struct Cell1D {
     unsigned int id;
-    unsigned int origin, end;
-    bool ShortPath = false;
+    unsigned int origine, fine;
+    bool ShortPath = false;   // SCRIVI CODICE DEL CAMMINO MINIMO
 };
 
-struct Face {
+struct Cell2D {
     unsigned int id;
-    std::vector<unsigned int> vertices;
-    std::vector<unsigned int> edges;
+    vector<unsigned int> Cell0D;
+    vector<unsigned int> Cell1D;
 };
 
-struct Polyhedron {
+struct Cell3D {
     unsigned int id;
-    std::vector<unsigned int> vertices;
-    std::vector<unsigned int> edges;
-    std::vector<unsigned int> faces;
+    vector<unsigned int> Cell0D;
+    vector<unsigned int> Cell1D;
+    vector<unsigned int> Cell2D;
 };
 
 struct PolygonalMesh {
-    std::vector<Vertex> vertices;
-    std::vector<Edge> edges;
-    std::vector<Face> faces;
-    std::vector<Polyhedron> polyhedra;
+    vector<Cell0D> Cell0D;
+    vector<Cell1D> Cell1D;
+    vector<Cell2D> Cell2D;
+    vector<Cell3D> Cell3D;
 };
 

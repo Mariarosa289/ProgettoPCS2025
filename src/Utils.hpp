@@ -6,19 +6,39 @@ using namespace std;
 
 
 
-void GenerateGeodesicPolyhedron(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolygonalMesh &mesh);
 
+void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolygonalMesh& mesh);
+
+unsigned int salva_vertice_norm(const array<double,3>& coord,
+                           map<array<double,3>, unsigned int>& map0D,
+                           PolygonalMesh& mesh,
+                           unsigned int& vid) ;
+
+void build_tetra(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce);
+
+void build_octa(vector<array<double, 3>>& vertici,vector<array<int, 3>>& facce);
+
+void build_ico(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce);
+
+bool ControllaInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c);
+
+array<double, 3> Normalizza(const array<double, 3>& p);
+
+
+
+
+/// SCRIVERE CODICI PER QUESTE TRE FUNZIONI
 void GenerateDual(const PolygonalMesh &original, PolygonalMesh &dual);
 
 void WriteMeshToTxt(const PolygonalMesh &mesh, const std::string &prefix);
 
-void ProjectVerticesOnSphere(PolygonalMesh &mesh);
-
 bool ComputeShortestPath(PolygonalMesh &mesh, unsigned int startId, unsigned int endId, std::vector<unsigned int> &path, double &totalLength);
 
-bool CheckInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c);
+
 
 //**************************************************************************** */
+
+/// RIVEDERE COSA SONO
 
 namespace PolygonalLibrary
 {
