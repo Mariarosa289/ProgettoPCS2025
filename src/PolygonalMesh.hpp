@@ -18,21 +18,21 @@ struct Cell1D {
 
 struct Cell2D {
     unsigned int id;
-    vector<unsigned int> Cell0D;
-    vector<unsigned int> Cell1D;
+    vector<unsigned int> vertici;
+    vector<unsigned int> spigoli;
 };
 
 struct Cell3D {
     unsigned int id;
-    vector<unsigned int> Cell0D;
-    vector<unsigned int> Cell1D;
-    vector<unsigned int> Cell2D;
+    vector<unsigned int> vertici;
+    vector<unsigned int> spigoli;
+    vector<unsigned int> facce;
 };
 
 struct PolygonalMesh {
-    vector<Cell0D> Cell0D;
-    vector<Cell1D> Cell1D;
-    vector<Cell2D> Cell2D;
-    vector<Cell3D> Cell3D;
+    vector<Cell0D> vertici;
+    vector<Cell1D> spigoli;
+    vector<Cell2D> facce;
+    vector<Cell3D> poliedri;
 };
 

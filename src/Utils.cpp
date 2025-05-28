@@ -21,9 +21,9 @@ array<double, 3> Normalizza(const array<double, 3>& p) {
 //***************************************************************************
 /// Controllo input: false se input non validi = OK
 
-bool ControllaInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c) {
-    return p >= 3 && q >= 3 && q <= 5 && (b == 0 || c == 0 || b == c);
-}
+//bool ControllaInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c) {
+    //return p >= 3 && q >= 3 && q <= 5 && (b == 0 || c == 0 || b == c);
+}//
 
 //***************************************************************************
 /// Genera l'icosaedro iniziale NON NORMALIZZATO centrato nell'origine
@@ -93,7 +93,7 @@ unsigned int salva_vertice_norm(const array<double,3>& coord,
         if (map0D.count(norm)) 
             return map0D[norm];  // se c'è il punto, non aggiorna il vid
         Vertex v{vid, norm};
-        mesh.Cell0D.push_back(v);
+        mesh.vertici.push_back(v);
         return map0D[norm] = vid++;  // vid utilizzato -> aggiorniamo il vid
     }
 
@@ -102,8 +102,8 @@ unsigned int salva_vertice_norm(const array<double,3>& coord,
 /// Costruzione del geodetico classe I
 
 void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolygonalMesh& mesh) {   //prende gli input e costruisce il solido
-    if (!ControllaInput(p, q, b, c)) throw runtime_error("Input non valido");   // SCRIVERE NEL MAIN
-    if (p != 3 || c != 0) throw runtime_error("Supportati solo solidi di classe I (p=3, c=0)");   //SCRIVERE NEL MAIN
+    //if (!ControllaInput(p, q, b, c)) throw runtime_error("Input non valido");   // SCRIVERE NEL MAIN
+    //if (p != 3 || c != 0) throw runtime_error("Supportati solo solidi di classe I (p=3, c=0)");   //SCRIVERE NEL MAIN
 
     vector<array<double, 3>> vertici_iniziali;
     vector<array<int, 3>> facce_iniziali;
@@ -152,35 +152,35 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
                 unsigned int v1 = griglia[i][j];
                 unsigned int v2 = griglia[i+1][j];
                 unsigned int v3 = griglia[i+1][j+1];
-                mesh.Cell2D.push_back({fid++, {v1,v2,v3}, {}});
+                mesh.facce.push_back({fid++, {v1,v2,v3}, {}});
                 if (j < i) {
                     unsigned int v4 = griglia[i][j+1];
-                    mesh.Cell2D.push_back({fid++, {v1,v3,v4}, {}});
+                    mesh.facce.push_back({fid++, {v1,v3,v4}, {}});
                 }
             }
         }
     }
     /// Mappa per Cell1D
     map<pair<unsigned int,unsigned int>, unsigned int> map1D;
-    for (auto& f : mesh.Cell2D) {
+    for (auto& f : mesh.facce) {
         for (int i = 0; i < 3; ++i) {
-            unsigned int a = f.Cell0D[i];// serve per collegare tutti i vertici del triangolo
-            unsigned int b = f.Cell0D[(i+1)%3];
+            unsigned int a = f.vertici[i];// serve per collegare tutti i vertici del triangolo
+            unsigned int b = f.vertici[(i+1)%3];
             if (a > b) swap(a, b);// fa si che non ci siano duplicati essendo i lati non orientati
             auto key = make_pair(a, b); // crea la coppia senza specificare il tipo di a e di b
             if (!map1D.count(key)) {   // qui vede se c'è la key e se non c'è la aggiunge
-                mesh.Cell1D.push_back({eid, a, b});
+                mesh.spigoli.push_back({eid, a, b});
                 map1D[key] = eid++;
             }
-            f.Cell1D.push_back(map1D[key]);
+            f.spigoli.push_back(map1D[key]);
         }
     }
 /// COSTRUZIONE DEL POLIEDRO
     Cell3D poly{0}; // Inizializzo il poliedro
-    for (auto& v : mesh.Cell0D) poly.Cell0D.push_back(v.id);
-    for (auto& e : mesh.Cell1D) poly.Cell1D.push_back(e.id);
-    for (auto& f : mesh.Cell2D) poly.Cell2D.push_back(f.id);
-    mesh.Cell3D.push_back(poly);
+    for (auto& v : mesh.vertici) poly.vertici.push_back(v.id);
+    for (auto& e : mesh.spigoli) poly.spigoli.push_back(e.id);
+    for (auto& f : mesh.facce) poly.facce.push_back(f.id);
+    mesh.poliedri.push_back(poly);
 
 }
 
