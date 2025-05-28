@@ -3,6 +3,10 @@
 #pragma once
 #include <vector>
 #include <array>
+#include "Eigen/Eigen"
+
+using namespace std;
+using namespace Eigen;
 
 struct Cell0D {
     unsigned int id;

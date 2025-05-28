@@ -7,6 +7,8 @@
 #include <sstream>
 #include <map>
 #include <tuple>
+#include <iomanip>  // per std::setprecision
+
 
 using namespace std;
 
@@ -21,9 +23,9 @@ array<double, 3> Normalizza(const array<double, 3>& p) {
 //***************************************************************************
 /// Controllo input: false se input non validi = OK
 
-//bool ControllaInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c) {
-    //return p >= 3 && q >= 3 && q <= 5 && (b == 0 || c == 0 || b == c);
-}//
+bool ControllaInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c) {
+    return p >= 3 && q >= 3 && q <= 5 && (b == 0 || c == 0 || b == c);
+}
 
 //***************************************************************************
 /// Genera l'icosaedro iniziale NON NORMALIZZATO centrato nell'origine
@@ -92,14 +94,14 @@ unsigned int salva_vertice_norm(const array<double,3>& coord,
         auto norm = Normalizza(coord);
         if (map0D.count(norm)) 
             return map0D[norm];  // se c'è il punto, non aggiorna il vid
-        Vertex v{vid, norm};
+        Cell0D v{vid, norm};
         mesh.vertici.push_back(v);
         return map0D[norm] = vid++;  // vid utilizzato -> aggiorniamo il vid
     }
 
 
 // ***************************************************************************
-/// Costruzione del geodetico classe I
+/// Costruzione del geodetico classe I = OK
 
 void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolygonalMesh& mesh) {   //prende gli input e costruisce il solido
     //if (!ControllaInput(p, q, b, c)) throw runtime_error("Input non valido");   // SCRIVERE NEL MAIN
@@ -181,10 +183,170 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
     for (auto& e : mesh.spigoli) poly.spigoli.push_back(e.id);
     for (auto& f : mesh.facce) poly.facce.push_back(f.id);
     mesh.poliedri.push_back(poly);
+    
 
 }
 
+//********************************************************************
+
+/// Funzione che genera tutti i file
+void GeneraTuttiFile(const PolygonalMesh& mesh, 
+                     const string& outfilename0D,
+                     const string& outfilename1D,
+                     const string& outfilename2D,
+                     const string& outfilename3D) {
+	 if (! GeneraFileCell0D (mesh, outfilename0D))
+	 {
+		 cerr<<"Problemi di esportazione per Cell0Ds.txt"<< endl;
+		 
+	  }
+	  else 
+	  	cout<<"Esportazione terminata con successo per Cell0Ds.txt"<< endl;
+	  	
+	  
+	  if (! GeneraFileCell1D (mesh, outfilename1D))
+	 {
+		 cerr<<"Problemi di esportazione per Cell1Ds.txt"<< endl;
+		 
+	  }
+	  else
+	  	cout<<"Esportazione terminata con successo per Cell1Ds.txt"<< endl;
+	  	
+	  	
+	  if (! GeneraFileCell2D (mesh, outfilename2D))
+	 {
+		 cerr<<"Problemi di esportazione per Cell2Ds.txt"<< endl;
+		 
+	  }
+	  else
+	  	cout<<"Esportazione terminata con successo per Cell2Ds.txt"<< endl;
+	  	
+	  	
+	  if (! GeneraFileCell3D (mesh, outfilename3D))
+	 {
+		 cerr<<"Problemi di esportazione per Cell3Ds.txt"<< endl;
+		 
+	  }
+	  else
+	  	cout<<"Esportazione terminata con successo per Cell3Ds.txt"<< endl;
+	  	
+	  }
+		 
 
 
+//********************************************************************
+
+/// Funzione che genera il file Cell0D
+
+bool GeneraFileCell0D(const PolygonalMesh& mesh, const string& outfilename) {   
+    ofstream file(outfilename);   //Scriveremo sull'outfilename
+    if (!file.is_open()) {   // controlliamo se si apre 
+        cerr << "Errore apertura file " << outfilename << endl;
+        return false;
+    }
+
+    // Inizio a scrivere sul file
+    //intestazione
+    file << "Id, x, y, z, ShortPath\n";
 
 
+    for (const auto& v : mesh.vertici) {
+        file << v.id << ", ";
+        file << setprecision(10) << v.coordinate[0] << ", ";
+        file << setprecision(10) << v.coordinate[1] << ", ";
+        file << setprecision(10) << v.coordinate[2] << ", ";
+        file << v.ShortPath << "\n";
+    }
+    file.close();
+    return true;
+}
+
+
+//********************************************************************
+
+/// Funzione che genera il file Cell1D
+
+bool GeneraFileCell1D(const PolygonalMesh& mesh, const string& outfilename) {
+    ofstream file(outfilename);
+    if (!file.is_open()) {
+        cerr << "Errore apertura file " << outfilename << endl;
+        return false;
+    }
+
+    file << "Id, Id_Origine, Id_Fine, ShortPath\n";
+
+    for (const auto& s : mesh.spigoli) {
+        file << s.id << ", " << s.origine << ", " << s.fine << ", " << s.ShortPath << "\n";
+    }
+    file.close();
+    return true;
+}
+
+
+//********************************************************************
+
+/// Funzione che genera il file Cell2D
+
+bool GeneraFileCell2D(const PolygonalMesh& mesh, const string& outfilename) {
+    ofstream file(outfilename);
+    if (!file.is_open()) {
+        cerr << "Errore apertura file " << outfilename << endl;
+        return false;
+    }
+
+    file << "Id, NumVertici, NumSpigoli, Id_Vertici, Id_Spigoli\n";
+
+    for (const auto& f : mesh.facce) {
+        file << f.id << ", "
+             << f.vertici.size() << ", "
+             << f.spigoli.size() << ", ";
+		file << "[" ;
+        // Vertici
+        for (auto vid : f.vertici)
+            file << vid << "  ";
+        // Spigoli
+        file << "], [" ;
+        for (auto sid : f.spigoli)
+            file << sid << "  ";
+
+        file << "]\n";
+    }
+    file.close();
+    return true;
+}
+
+
+//********************************************************************
+
+/// Funzione che genera il file Cell3D
+
+
+bool GeneraFileCell3D(const PolygonalMesh& mesh, const string& outfilename) {
+    ofstream file(outfilename);
+    if (!file.is_open()) {
+        cerr << "Errore apertura file " << outfilename << endl;
+        return false;
+    }
+
+    file << "Id, NumVertici, NumSpigoli, NumFacce, Id_Vertici, Id_Spigoli, Id_Facce\n";
+
+    for (const auto& p : mesh.poliedri) {
+        file << p.id << ", "
+             << p.vertici.size() << ", "
+             << p.spigoli.size() << ", "
+             << p.facce.size() << ", ";
+		file << "[";
+        for (auto vid : p.vertici)
+            file << vid << "  ";
+        file << "], [" ;
+        for (auto sid : p.spigoli)
+            file << sid << "  ";
+        file << "], [";
+        for (auto fid : p.facce)
+            file << fid << "  ";
+
+        file << "]\n";
+    }
+    file.close();
+    return true;
+}

@@ -1,6 +1,7 @@
 #pragma once
 #include "PolygonalMesh.hpp"
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -24,8 +25,19 @@ bool ControllaInput(unsigned int p, unsigned int q, unsigned int b, unsigned int
 
 array<double, 3> Normalizza(const array<double, 3>& p);
 
+bool GeneraFileCell0D(const PolygonalMesh& mesh, const string& outfilename);
 
+bool GeneraFileCell1D(const PolygonalMesh& mesh, const string& outfilename);
 
+bool GeneraFileCell2D(const PolygonalMesh& mesh, const string& outfilename);
+
+bool GeneraFileCell3D(const PolygonalMesh& mesh, const string& outfilename);
+
+void GeneraTuttiFile(const PolygonalMesh& mesh, 
+                     const string& outfilename0D,
+                     const string& outfilename1D,
+                     const string& outfilename2D,
+                     const string& outfilename3D);
 
 /// SCRIVERE CODICI PER QUESTE TRE FUNZIONI
 void GenerateDual(const PolygonalMesh &original, PolygonalMesh &dual);
