@@ -106,7 +106,8 @@ unsigned int salva_vertice_norm(const array<double,3>& coord,
 void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolygonalMesh& mesh) {   //prende gli input e costruisce il solido
     //if (!ControllaInput(p, q, b, c)) throw runtime_error("Input non valido");   // SCRIVERE NEL MAIN
     //if (p != 3 || c != 0) throw runtime_error("Supportati solo solidi di classe I (p=3, c=0)");   //SCRIVERE NEL MAIN
-
+    
+    unsigned int divisore = b+c; // b=0 o c=0 per solidi di classe 1//
     vector<array<double, 3>> vertici_iniziali;
     vector<array<int, 3>> facce_iniziali;
 
@@ -133,13 +134,13 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
         const auto& B = vertici_iniziali[face[1]];
         const auto& C = vertici_iniziali[face[2]];
 
-        vector<vector<unsigned int>> griglia(b+1);
-        for (unsigned int i = 0; i <= b; ++i) {
+        vector<vector<unsigned int>> griglia(divisore+1);
+        for (unsigned int i = 0; i <= divisore; ++i) {
             griglia[i].resize(i+1);
             for (unsigned int j = 0; j <= i; ++j) {
-                double u = 1.0 - static_cast<double>(i)/b; // coordinate baricentriche 
-                double v = static_cast<double>(i - j)/b; // static_cast <double> serve per far si che la divisione dia un risultato double
-                double w = static_cast<double>(j)/b;
+                double u = 1.0 - static_cast<double>(i)/divisore; // coordinate baricentriche 
+                double v = static_cast<double>(i - j)/divisore; // static_cast <double> serve per far si che la divisione dia un risultato double
+                double w = static_cast<double>(j)/divisore;
                 array<double,3> P = {
                     u*A[0] + v*B[0] + w*C[0],
                     u*A[1] + v*B[1] + w*C[1],
@@ -149,7 +150,7 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
             }
         }
 // TRIANGOLAZIONE DELLA FACCIA PRINCIPALE IN BASE A b (salvando ogni sottotriangolo/faccia attraverso i vertici)
-        for (unsigned int i = 0; i < b; ++i) { //itera sui vertici  dei sottotriangoli attraverso lo schema sugli appunti
+        for (unsigned int i = 0; i < divisore; ++i) { //itera sui vertici  dei sottotriangoli attraverso lo schema sugli appunti
             for (unsigned int j = 0; j < i + 1; ++j) {
                 unsigned int v1 = griglia[i][j];
                 unsigned int v2 = griglia[i+1][j];

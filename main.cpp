@@ -10,10 +10,22 @@ using namespace Eigen;
 
 
 int main () {
-		unsigned int p = 3;   // Numero lati per faccia (solo 3 supportato)
-        unsigned int q = 5;   // Numero facce per vertice (5 = icosaedro)
-        unsigned int b = 1;   // Parametro di suddivisione
-        unsigned int c = 0;   // Solo classe I (c=0)
+	
+	
+		unsigned int p, q, b, c;
+	
+		// Input da terminale
+		cout << "Inserisci il numero di lati per faccia (p): ";
+		cin >> p;
+	
+		cout << "Inserisci il numero di facce per vertice (q): ";
+		cin >> q;
+	
+		cout << "Inserisci il parametro di suddivisione (b): ";
+		cin >> b;
+	
+		cout << "Inserisci la classe (c): ";
+		cin >> c;
         
         PolygonalMesh mesh;
 		
