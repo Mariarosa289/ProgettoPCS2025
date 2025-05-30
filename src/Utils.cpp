@@ -149,6 +149,19 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
                 griglia[i][j] = salva_vertice_norm(P, map0D, mesh, vid);  
             }
         }
+		
+/// sistemazione tolleranza vertici//
+		array<double, 3> P_rounded = round_point(P);
+		auto it = map0D.find(P_rounded);
+		if (it == map0D.end()) {
+			unsigned int id = vid++;
+			map0D[P_rounded] = id;
+			mesh.vertici.push_back({id, P});
+			return id;
+		} else {
+			return it->second;
+		}
+		
 // TRIANGOLAZIONE DELLA FACCIA PRINCIPALE IN BASE A b (salvando ogni sottotriangolo/faccia attraverso i vertici)
         for (unsigned int i = 0; i < divisore; ++i) { //itera sui vertici  dei sottotriangoli attraverso lo schema sugli appunti
             for (unsigned int j = 0; j < i + 1; ++j) {
@@ -189,6 +202,19 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
 }
 
 //********************************************************************
+
+/// funzione di tolleranza per evitare duplicati dei nodi///
+
+array<double, 3> round_point(const array<double, 3>& p, double eps = 1e-6) {
+    return {
+        round(p[0] / eps) * eps,
+        round(p[1] / eps) * eps,
+        round(p[2] / eps) * eps
+    };
+}
+
+//********************************************************************
+
 
 /// Funzione che genera tutti i file
 void GeneraTuttiFile(const PolygonalMesh& mesh, 
@@ -318,6 +344,9 @@ bool GeneraFileCell2D(const PolygonalMesh& mesh, const string& outfilename) {
 
 
 //********************************************************************
+
+
+
 
 /// Funzione che genera il file Cell3D
 
