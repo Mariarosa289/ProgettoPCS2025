@@ -21,6 +21,17 @@ array<double, 3> Normalizza(const array<double, 3>& p) {
 }
 
 //***************************************************************************
+
+/// funzione di tolleranza per evitare duplicati dei nodi///
+
+array<double, 3> round_point(const array<double, 3>& p, double eps = 1e-6) {
+    return {
+        round(p[0] / eps) * eps,
+        round(p[1] / eps) * eps,
+        round(p[2] / eps) * eps
+    };
+}
+
 /// Controllo input: false se input non validi = OK
 
 bool ControllaInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c) {
@@ -92,11 +103,37 @@ unsigned int salva_vertice_norm(const array<double,3>& coord,
                            unsigned int& vid) 
     {
         auto norm = Normalizza(coord);
-        if (map0D.count(norm)) 
-            return map0D[norm];  // se c'è il punto, non aggiorna il vid
-        Cell0D v{vid, norm};
-        mesh.vertici.push_back(v);
-        return map0D[norm] = vid++;  // vid utilizzato -> aggiorniamo il vid
+		auto rounded = round_point(norm);
+		
+		// cerca nella mappa il valore rounded, se arriva lla fine della mappa, allora non l'ha trovato e lo aggiunge
+		// alla mappa, se non arriva lla fine 
+		auto it = map0D.find(rounded);
+		if (it != map0D.end()) {
+			return it->second;
+		} else {
+			mesh.vertici.push_back({vid, norm});
+			map0D[rounded] = vid;
+			return vid++;
+		}
+		
+		
+        ///if (map0D.count(norm)) 
+        ///    return map0D[norm];  // se c'è il punto, non aggiorna il vid
+        ///Cell0D v{vid, norm};
+        ///mesh.vertici.push_back(v);
+        ///return map0D[norm] = vid++;  // vid utilizzato -> aggiorniamo il vid
+		
+		/// sistemazione tolleranza vertici//
+		///array<double, 3> P_rounded = round_point(coord);
+		///auto it = map0D.find(P_rounded);
+		///if (it == map0D.end()) {
+		///	unsigned int id = vid++;
+		///	map0D[P_rounded] = id;
+		///	mesh.vertici.push_back({id, coord});
+		///	return id;
+		//} else {
+		///	return it->second;
+		///}
     }
 
 
@@ -146,21 +183,12 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
                     u*A[1] + v*B[1] + w*C[1],
                     u*A[2] + v*B[2] + w*C[2]
                 };
+				
                 griglia[i][j] = salva_vertice_norm(P, map0D, mesh, vid);  
             }
         }
 		
-/// sistemazione tolleranza vertici//
-		array<double, 3> P_rounded = round_point(P);
-		auto it = map0D.find(P_rounded);
-		if (it == map0D.end()) {
-			unsigned int id = vid++;
-			map0D[P_rounded] = id;
-			mesh.vertici.push_back({id, P});
-			return id;
-		} else {
-			return it->second;
-		}
+
 		
 // TRIANGOLAZIONE DELLA FACCIA PRINCIPALE IN BASE A b (salvando ogni sottotriangolo/faccia attraverso i vertici)
         for (unsigned int i = 0; i < divisore; ++i) { //itera sui vertici  dei sottotriangoli attraverso lo schema sugli appunti
@@ -203,15 +231,7 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
 
 //********************************************************************
 
-/// funzione di tolleranza per evitare duplicati dei nodi///
 
-array<double, 3> round_point(const array<double, 3>& p, double eps = 1e-6) {
-    return {
-        round(p[0] / eps) * eps,
-        round(p[1] / eps) * eps,
-        round(p[2] / eps) * eps
-    };
-}
 
 //********************************************************************
 
