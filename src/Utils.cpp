@@ -413,11 +413,11 @@ static Vector3d CentroideCoordinate(const vector<int>& VerticesId, const MatrixX
         c += Cell0DsCoordinates.col(vid);
     }
     c /= static_cast<double>(VerticesId.size());   //media (statica_cast trasforma l'intero in double per evitare la diviosione intera)
-	
+    
 	double norm = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);   // calcolo la norma per normalizzare
     Vector3d p(c[0]/norm, c[1]/norm, c[2]/norm);
 	
-    return p;   
+    return p;     
     // VALUTARE round()
 }
 
@@ -456,11 +456,42 @@ void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg) {
 
         if (geodeticoFacceAdiacenti.size() < 3) continue;   //controllo se ci sono vertici che non condividono 3 facce
 
-        vector<int> GoldbergVerticiDiFacce;   // vertici di una faccia di Goldberg
+        /*vector<int> GoldbergVerticiDiFacce;   // vertici di una faccia di Goldberg
         for (auto geodeticofid : geodeticoFacceAdiacenti)   // id di faccia geodetica mappata all'id di vertice di goldberg
         {
             GoldbergVerticiDiFacce.push_back(mapGoldbergVerticiID[geodeticofid]);
         }
+        GoldbergFacce.push_back(GoldbergVerticiDiFacce);*/
+
+        Vector3d centro = geodetico.Cell0DsCoordinates.col(v);  // punto centrale
+        Vector3d normale = centro.normalized();  // normale alla superficie sferica
+        
+        // Base ortonormale tangente alla sfera in "centro"
+        Vector3d e1;
+        if (fabs(normale.x()) > fabs(normale.z()))
+            e1 = Vector3d(-normale.y(), normale.x(), 0.0).normalized();
+        else
+            e1 = Vector3d(0.0, -normale.z(), normale.y()).normalized();
+        Vector3d e2 = normale.cross(e1);
+
+        // Baricentri da ordinare
+        vector<pair<double, int>> angoli_e_id;
+        for (auto fid : geodeticoFacceAdiacenti) {
+            Vector3d bar = Goldberg.Cell0DsCoordinates.col(mapGoldbergVerticiID[fid]);
+            Vector3d r = (bar - centro).normalized();
+            double x = r.dot(e1);
+            double y = r.dot(e2);
+            double angolo = atan2(y, x);  // angolo nel piano locale
+            angoli_e_id.emplace_back(angolo, mapGoldbergVerticiID[fid]);
+        }
+
+        sort(angoli_e_id.begin(), angoli_e_id.end());
+
+        vector<int> GoldbergVerticiDiFacce;
+        for (const auto& [_, gid] : angoli_e_id) {
+            GoldbergVerticiDiFacce.push_back(gid);
+        }
+
         GoldbergFacce.push_back(GoldbergVerticiDiFacce);
     }
 
@@ -514,5 +545,7 @@ void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg) {
     Goldberg.Cell3DsEdges = {lati3D};
     Goldberg.Cell3DsFaces = {facce3D};
 } 
+
+
 
 
