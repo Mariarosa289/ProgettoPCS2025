@@ -1,42 +1,43 @@
-// RIVEDERE LE #include
-
 #pragma once
+
 #include <vector>
-#include <array>
-#include "Eigen/Eigen"
+#include <map>
+#include <list>
+#include <Eigen/Eigen>
 
-using namespace std;
-using namespace Eigen;
+namespace PolygonalLibrary {
 
-struct Cell0D {
-    unsigned int id;
-    array<double, 3> coordinate;
-    bool ShortPath = false;   // SCRIVI CODICE DEL CAMMINO MINIMO 
+struct PolygonalMesh
+{
+    // === Cell0D ===
+    unsigned int NumCell0Ds = 0; ///< number of Cell0D
+    std::vector<unsigned int> Cell0DsId = {}; ///< Cell0D ids, size NumCell0Ds
+    Eigen::MatrixXd Cell0DsCoordinates = {}; ///< Cell0D coordinates, shape: X x NumCell0Ds (x,y)
+    std::map<unsigned int, std::list<unsigned int>> MarkerCell0Ds = {}; ///< Cell0D markers, e.g., ShortestPath marker
+
+    // === Cell1D ===
+    unsigned int NumCell1Ds = 0; ///< number of Cell1D
+    std::vector<unsigned int> Cell1DsId = {}; ///< Cell1D ids, size NumCell1Ds
+    Eigen::MatrixXi Cell1DsExtrema = {}; ///< Cell1D extrema (from, to), shape: X x NumCell1Ds
+    std::map<unsigned int, std::list<unsigned int>> MarkerCell1Ds = {}; ///< Cell1D markers, e.g., ShortestPath marker
+
+    // === Cell2D ===
+    unsigned int NumCell2Ds = 0; ///< number of Cell2D
+    std::vector<unsigned int> Cell2DsId = {}; ///< Cell2D ids, size NumCell2Ds
+    std::vector<std::vector<int>> Cell2DsVertices = {}; ///< Cell2D vertex ids, variable size per cell
+    std::vector<int> Cell2DsNumEdges = {}; ///< Number of edges per Cell2D, size NumCell2Ds
+    std::vector<std::vector<int>> Cell2DsEdges = {}; ///< Cell2D edge ids (Cell1D), variable size per cell
+    std::map<unsigned int, std::list<unsigned int>> MarkerCell2Ds = {}; ///< Cell2D markers
+
+  
+  // === Cell3D ===
+    unsigned int NumCell3Ds = 0;
+    std::vector<unsigned int> Cell3DsId = {};
+    std::vector<std::vector<int>> Cell3DsVertices = {};
+    std::vector<std::vector<int>> Cell3DsEdges = {};
+    std::vector<std::vector<int>> Cell3DsFaces = {};
+    std::map<unsigned int, std::list<unsigned int>> MarkerCell3Ds = {};
+	
 };
 
-struct Cell1D {
-    unsigned int id;
-    unsigned int origine, fine;
-    bool ShortPath = false;   // SCRIVI CODICE DEL CAMMINO MINIMO
-};
-
-struct Cell2D {
-    unsigned int id;
-    vector<unsigned int> vertici;
-    vector<unsigned int> spigoli;
-};
-
-struct Cell3D {
-    unsigned int id;
-    vector<unsigned int> vertici;
-    vector<unsigned int> spigoli;
-    vector<unsigned int> facce;
-};
-
-struct PolygonalMesh {
-    vector<Cell0D> vertici;
-    vector<Cell1D> spigoli;
-    vector<Cell2D> facce;
-    vector<Cell3D> poliedri;
-};
-
+} // namespace PolygonalLibrary

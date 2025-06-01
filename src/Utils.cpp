@@ -1,5 +1,7 @@
 //RIVEDERE le #include
 
+
+/*
 #include "Utils.hpp"
 #include "PolygonalMesh.hpp"
 #include <iostream>
@@ -10,6 +12,7 @@
 #include <iomanip>  // per std::setprecision
 
 
+using namespace PolygonalLibrary;
 using namespace std;
 
 //***************************************************************************
@@ -228,6 +231,214 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
     
 
 }
+*/
+
+#include "Utils.hpp"
+#include "PolygonalMesh.hpp"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <map>
+#include <tuple>
+#include <iomanip>
+#include <cmath>
+#include <numeric> 
+
+using namespace PolygonalLibrary;
+using namespace std;
+
+array<double, 3> Normalizza(const array<double, 3>& p) {
+    double norm = sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]);
+    return {p[0]/norm, p[1]/norm, p[2]/norm};
+}
+
+array<double, 3> round_point(const array<double, 3>& p, double eps = 1e-6) {
+    return {
+        round(p[0] / eps) * eps,
+        round(p[1] / eps) * eps,
+        round(p[2] / eps) * eps
+    };
+}
+
+bool ControllaInput(unsigned int p, unsigned int q, unsigned int b, unsigned int c) {
+    return p >= 3 && q >= 3 && q <= 5 && (b == 0 || c == 0 || b == c);
+}
+
+void build_ico(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) {
+    const double phi = (1.0 + sqrt(5.0)) / 2.0;
+    vertici = {
+        {-1,  phi,  0}, { 1,  phi,  0}, {-1, -phi,  0}, { 1, -phi,  0},
+        { 0, -1,  phi}, { 0,  1,  phi}, { 0, -1, -phi}, { 0,  1, -phi},
+        { phi,  0, -1}, { phi,  0,  1}, {-phi,  0, -1}, {-phi,  0,  1}
+    };
+    facce = {
+        {0,11,5}, {0,5,1}, {0,1,7}, {0,7,10}, {0,10,11},
+        {1,5,9}, {5,11,4}, {11,10,2}, {10,7,6}, {7,1,8},
+        {3,9,4}, {3,4,2}, {3,2,6}, {3,6,8}, {3,8,9},
+        {4,9,5}, {2,4,11}, {6,2,10}, {8,6,7}, {9,8,1}
+    };
+}
+
+void build_octa(vector<array<double, 3>>& vertici,vector<array<int, 3>>& facce) {
+    vertici = {
+        { 1,  0,  0}, {-1,  0,  0}, { 0,  1,  0},
+        { 0, -1,  0}, { 0,  0,  1}, { 0,  0, -1}
+    };
+    facce = {
+        {0, 2, 4}, {2, 1, 4}, {1, 3, 4}, {3, 0, 4},
+        {2, 0, 5}, {1, 2, 5}, {3, 1, 5}, {0, 3, 5}
+    };
+}
+
+void build_tetra(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) {
+    vertici = {
+        {  1,  1,  1 },
+        { -1, -1,  1 },
+        { -1,  1, -1 },
+        {  1, -1, -1 }
+    };
+    facce = {
+        {0, 1, 2}, {0, 3, 1}, {0, 2, 3}, {1, 3, 2}
+    };
+}
+
+unsigned int salva_vertice_norm(const array<double,3>& coord,
+                           map<array<double,3>, unsigned int>& map0D,
+                           PolygonalMesh& mesh) 
+{
+    static unsigned int vid = 0;
+    auto norm = Normalizza(coord);
+    auto rounded = round_point(norm);
+    auto it = map0D.find(rounded);
+    if (it != map0D.end()) return it->second;
+    map0D[rounded] = vid;
+    mesh.Cell0DsId.push_back(vid);
+    mesh.Cell0DsCoordinates.conservativeResize(3, vid + 1);
+    for (int i = 0; i < 3; ++i)
+        mesh.Cell0DsCoordinates(i, vid) = norm[i];
+    return vid++;
+}
+
+void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolygonalMesh& mesh) {
+	
+	if (!ControllaInput(p, q, b, c)) throw runtime_error("Input non valido");   
+    if (p != 3 || c != 0) throw runtime_error("Supportati solo solidi di classe I (p=3, c=0)");   //MAIN:swap b e c
+    
+    vector<array<double, 3>> vertici_iniziali;
+    vector<array<int, 3>> facce_iniziali;
+
+    if (q == 5) build_ico(vertici_iniziali, facce_iniziali);
+    else if (q == 4) build_octa(vertici_iniziali, facce_iniziali);
+    else build_tetra(vertici_iniziali, facce_iniziali);
+
+    map<array<double, 3>, unsigned int> map0D;
+    map<pair<unsigned int,unsigned int>, unsigned int> map1D;
+    unsigned int fid = 0;
+
+    for (const auto& face : facce_iniziali) {
+        const auto& A = vertici_iniziali[face[0]];
+        const auto& B = vertici_iniziali[face[1]];
+        const auto& C = vertici_iniziali[face[2]];
+
+        vector<vector<unsigned int>> griglia(b + 1);
+        for (unsigned int i = 0; i <= b; ++i) {
+            griglia[i].resize(i + 1);
+            for (unsigned int j = 0; j <= i; ++j) {
+                double u = 1.0 - static_cast<double>(i)/b;
+                double v = static_cast<double>(i - j)/b;
+                double w = static_cast<double>(j)/b;
+                array<double,3> P = {
+                    u*A[0] + v*B[0] + w*C[0],
+                    u*A[1] + v*B[1] + w*C[1],
+                    u*A[2] + v*B[2] + w*C[2]
+                };
+                griglia[i][j] = salva_vertice_norm(P, map0D, mesh);
+            }
+        }
+
+        for (unsigned int i = 0; i < b; ++i) {
+            for (unsigned int j = 0; j < i + 1; ++j) {
+                unsigned int v1 = griglia[i][j];
+                unsigned int v2 = griglia[i+1][j];
+                unsigned int v3 = griglia[i+1][j+1];
+                mesh.Cell2DsId.push_back(fid++);
+                mesh.Cell2DsVertices.push_back({(int)v1, (int)v2, (int)v3});
+                vector<int> edge_ids;
+                for (int k = 0; k < 3; ++k) {
+                    unsigned int a = mesh.Cell2DsVertices.back()[k];
+                    unsigned int b = mesh.Cell2DsVertices.back()[(k+1)%3];
+                    if (a > b) swap(a, b);
+                    auto key = make_pair(a, b);
+                    if (!map1D.count(key)) {
+                        map1D[key] = mesh.Cell1DsId.size();
+                        mesh.Cell1DsId.push_back(map1D[key]);
+                        mesh.Cell1DsExtrema.conservativeResize(2, map1D[key] + 1);
+                        mesh.Cell1DsExtrema(0, map1D[key]) = a;
+                        mesh.Cell1DsExtrema(1, map1D[key]) = b;
+                    }
+                    edge_ids.push_back(map1D[key]);
+                }
+                mesh.Cell2DsEdges.push_back(edge_ids);
+                mesh.Cell2DsNumEdges.push_back(3);
+
+                if (j < i) {
+                    unsigned int v4 = griglia[i][j+1];
+                    mesh.Cell2DsId.push_back(fid++);
+                    mesh.Cell2DsVertices.push_back({(int)v1, (int)v3, (int)v4});
+                    vector<int> edge_ids2;
+                    for (int k = 0; k < 3; ++k) {
+                        unsigned int a = mesh.Cell2DsVertices.back()[k];
+                        unsigned int b = mesh.Cell2DsVertices.back()[(k+1)%3];
+                        if (a > b) swap(a, b);
+                        auto key = make_pair(a, b);
+                        if (!map1D.count(key)) {
+                            map1D[key] = mesh.Cell1DsId.size();
+                            mesh.Cell1DsId.push_back(map1D[key]);
+                            mesh.Cell1DsExtrema.conservativeResize(2, map1D[key] + 1);
+                            mesh.Cell1DsExtrema(0, map1D[key]) = a;
+                            mesh.Cell1DsExtrema(1, map1D[key]) = b;
+                        }
+                        edge_ids2.push_back(map1D[key]);
+                    }
+                    mesh.Cell2DsEdges.push_back(edge_ids2);
+                    mesh.Cell2DsNumEdges.push_back(3);
+                }
+            }
+        }
+    }
+
+    mesh.NumCell0Ds = mesh.Cell0DsId.size();
+    mesh.NumCell1Ds = mesh.Cell1DsId.size();
+    mesh.NumCell2Ds = mesh.Cell2DsId.size();
+
+
+	// Salva la Cell3D (unica)
+    mesh.NumCell3Ds = 1;
+    mesh.Cell3DsId.push_back(0);
+
+    // Tutti i vertici usati nella mesh
+    vector<int> cell3D_vertices(mesh.NumCell0Ds);
+    iota(cell3D_vertices.begin(), cell3D_vertices.end(), 0);
+    mesh.Cell3DsVertices.push_back(cell3D_vertices);
+
+    // Tutti gli spigoli usati nella mesh
+    vector<int> cell3D_edges(mesh.NumCell1Ds);
+    iota(cell3D_edges.begin(), cell3D_edges.end(), 0);
+    mesh.Cell3DsEdges.push_back(cell3D_edges);
+
+    // Tutte le facce usate nella mesh
+    vector<int> cell3D_faces(mesh.NumCell2Ds);
+    iota(cell3D_faces.begin(), cell3D_faces.end(), 0);
+    mesh.Cell3DsFaces.push_back(cell3D_faces);
+
+    // Marker (metti pure 0 o un altro intero se serve)
+    mesh.MarkerCell3Ds[0] = {0};
+	
+    mesh.Cell2DsId.shrink_to_fit(); // shrink_to_fit libera la memoria inutilizzata
+    mesh.Cell2DsEdges.shrink_to_fit();
+    mesh.Cell2DsVertices.shrink_to_fit();
+    mesh.Cell2DsNumEdges.shrink_to_fit();
+}
 
 //********************************************************************
 
@@ -285,26 +496,22 @@ void GeneraTuttiFile(const PolygonalMesh& mesh,
 
 /// Funzione che genera il file Cell0D
 
-bool GeneraFileCell0D(const PolygonalMesh& mesh, const string& outfilename) {   
-    ofstream file(outfilename);   //Scriveremo sull'outfilename
-    if (!file.is_open()) {   // controlliamo se si apre 
-        cerr << "Errore apertura file " << outfilename << endl;
-        return false;
-    }
+bool GeneraFileCell0D(const PolygonalMesh& mesh, const string& outfilename) {
+    ofstream file(outfilename);
+    if (!file.is_open()) return false;
 
-    // Inizio a scrivere sul file
-    //intestazione
-    file << "Id, x, y, z, ShortPath\n";
+    file << "Id, x, y, ShortPath\n";
 
-
-    for (const auto& v : mesh.vertici) {
-        file << v.id << ", ";
-        file << setprecision(10) << v.coordinate[0] << ", ";
-        file << setprecision(10) << v.coordinate[1] << ", ";
-        file << setprecision(10) << v.coordinate[2] << ", ";
-        file << v.ShortPath << "\n";
+    for (unsigned int i = 0; i < mesh.NumCell0Ds; ++i) {
+        file << mesh.Cell0DsId[i] << ", "
+             << setprecision(10) << mesh.Cell0DsCoordinates(0, i) << ", "
+             << setprecision(10) << mesh.Cell0DsCoordinates(1, i) << ", "
+			 << setprecision(10) << mesh.Cell0DsCoordinates(2, i) << ", "
+             << 0 << "\n"; // oppure `ShortPath[i]` se lo aggiungi come campo
     }
     file.close();
+	
+	
     return true;
 }
 
@@ -322,11 +529,16 @@ bool GeneraFileCell1D(const PolygonalMesh& mesh, const string& outfilename) {
 
     file << "Id, Id_Origine, Id_Fine, ShortPath\n";
 
-    for (const auto& s : mesh.spigoli) {
-        file << s.id << ", " << s.origine << ", " << s.fine << ", " << s.ShortPath << "\n";
+    for (unsigned int i= 0; i < mesh.NumCell1Ds; ++i) {
+        file << mesh.Cell1DsId[i] << ", " 
+		<< setprecision(10) << mesh.Cell1DsExtrema(0,i)<< ", " 
+		<<setprecision(10) << mesh.Cell1DsExtrema(1,i) << ", "		
+		<< 0 << "\n";
     }
     file.close();
+
     return true;
+	
 }
 
 
@@ -343,18 +555,19 @@ bool GeneraFileCell2D(const PolygonalMesh& mesh, const string& outfilename) {
 
     file << "Id, NumVertici, NumSpigoli, Id_Vertici, Id_Spigoli\n";
 
-    for (const auto& f : mesh.facce) {
-        file << f.id << ", "
-             << f.vertici.size() << ", "
-             << f.spigoli.size() << ", ";
+    for (unsigned int i= 0; i < mesh.NumCell2Ds; ++i) {
+        file << mesh.Cell2DsId[i] << ", "
+		<< setprecision(10) << mesh.Cell2DsVertices[i].size() << ", "
+        << setprecision(10) << mesh.Cell2DsEdges[i].size() << ", ";
+		
 		file << "[" ;
         // Vertici
-        for (auto vid : f.vertici)
-            file << vid << "  ";
+        for (size_t j=0; j < mesh.Cell2DsVertices[i].size();j++)
+            file << mesh.Cell2DsVertices[i][j] << "  ";
         // Spigoli
         file << "], [" ;
-        for (auto sid : f.spigoli)
-            file << sid << "  ";
+        for (size_t j=0; j<mesh.Cell2DsEdges[i].size();j++)
+            file << mesh.Cell2DsEdges[i][j] << "  ";
 
         file << "]\n";
     }
@@ -379,23 +592,30 @@ bool GeneraFileCell3D(const PolygonalMesh& mesh, const string& outfilename) {
     }
 
     file << "Id, NumVertici, NumSpigoli, NumFacce, Id_Vertici, Id_Spigoli, Id_Facce\n";
-
-    for (const auto& p : mesh.poliedri) {
-        file << p.id << ", "
-             << p.vertici.size() << ", "
-             << p.spigoli.size() << ", "
-             << p.facce.size() << ", ";
-		file << "[";
-        for (auto vid : p.vertici)
-            file << vid << "  ";
+	
+	for (unsigned int i = 0; i < mesh.NumCell3Ds; ++i) {
+        file << mesh.Cell0DsId[i] << ", "
+		<< setprecision(10) << mesh.Cell3DsVertices[i].size() << ", "
+		<< setprecision(10) << mesh.Cell3DsEdges[i].size() << ", "
+		<< setprecision(10) << mesh.Cell3DsFaces[i].size() << ", ";
+		
+		file << "[" ;
+        // Vertici
+        for (size_t j=0; j<mesh.Cell3DsVertices[i].size();j++)
+            file << mesh.Cell3DsVertices[i][j] << "  ";
+		
+		// Spigoli
         file << "], [" ;
-        for (auto sid : p.spigoli)
-            file << sid << "  ";
-        file << "], [";
-        for (auto fid : p.facce)
-            file << fid << "  ";
+        for (size_t j=0; j<mesh.Cell3DsEdges[i].size();j++)
+            file << mesh.Cell3DsEdges[i][j] << "  ";
+		
+		// Facce
+        file << "], [" ;
+        for (size_t j=0; j<mesh.Cell3DsFaces[i].size();j++)
+            file << mesh.Cell3DsFaces[i][j] << "  ";
 
         file << "]\n";
+		
     }
     file.close();
     return true;
