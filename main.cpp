@@ -27,28 +27,41 @@ int main () {
 	
 		cout << "Inserisci la classe (c): ";
 		cin >> c;
-		
-		// Controlla input
-        
-        PolygonalMesh mesh;
-		
-        // Costruzione della mesh
-        build_solido(p, q, b, c, mesh);
-        
-        //i 4 file di output
+
+		//i 4 file di output
         
         string outfilename0D="Cell0Ds.txt";
         string outfilename1D="Cell1Ds.txt";
         string outfilename2D="Cell2Ds.txt";
         string outfilename3D="Cell3Ds.txt";
-        
-        // generiamo i 4 file di output
-        
-		GeneraTuttiFile(mesh, 
+		
+		if (b==0 && c==0) throw runtime_error("Errore: uno tra b e c deve essere > 0.");
+
+		//AGGIORNARE PER LA SECONDA CLASSE
+		if(p==3 && q>=3 && q<=5 && (b == 0 || c == 0 || b == c)) {   //geodetico senza duale
+			PolygonalMesh geodetico;
+			if(b==0) {swap(b, c)};
+			build_solido(p, q, b, c, geodetico);
+			GeneraTuttiFile(geodetico, 
                      outfilename0D,
                      outfilename1D,
                      outfilename2D,
                      outfilename3D);
+		} else if(q==3 && (p==4 || p==5) && (b == 0 || c == 0 || b == c)) {
+			PolygonalMesh geodetico;
+			PolygonalMesh duale;
+			if(b==0) {swap(b, c)};
+			build_solido(q, p, b, c, geodetico);
+			build_duale(geodetico, duale);
+			GeneraTuttiFile(duale, 
+                     outfilename0D,
+                     outfilename1D,
+                     outfilename2D,
+                     outfilename3D);
+		} 
+		else throw runtime_error("Valori NON accettabili!");
+
+        
 		/// Per visualizzare online le mesh:
 		/// 1. Convertire i file .inp in file .vtu con https://meshconverter.it/it
 		/// 2. Caricare il file .vtu su https://kitware.github.io/glance/app/
