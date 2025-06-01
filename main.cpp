@@ -1,5 +1,7 @@
 #include <iostream>
 #include <stdexcept>
+#include <vector>
+#include <Eigen/Eigen>
 #include "PolygonalMesh.hpp"
 #include "Utils.hpp"
 
@@ -35,25 +37,29 @@ int main () {
         string outfilename2D="Cell2Ds.txt";
         string outfilename3D="Cell3Ds.txt";
 		
+
 		if (b==0 && c==0) throw runtime_error("Errore: uno tra b e c deve essere > 0.");
 
+		PolygonalMesh mesh;
+		
 		//AGGIORNARE PER LA SECONDA CLASSE
 		if(p==3 && q>=3 && q<=5 && (b == 0 || c == 0 || b == c)) {   //geodetico senza duale
-			PolygonalMesh geodetico;
-			if(b==0) {swap(b, c)};
-			build_solido(p, q, b, c, geodetico);
-			GeneraTuttiFile(geodetico, 
+
+			if(b==0) {swap(b, c);}
+			build_solido(p, q, b, c, mesh);
+			
+			GeneraTuttiFile(mesh, 
                      outfilename0D,
                      outfilename1D,
                      outfilename2D,
                      outfilename3D);
 		} else if(q==3 && (p==4 || p==5) && (b == 0 || c == 0 || b == c)) {
 			PolygonalMesh geodetico;
-			PolygonalMesh duale;
-			if(b==0) {swap(b, c)};
+			
+			if(b==0) {swap(b, c);}
 			build_solido(q, p, b, c, geodetico);
-			build_duale(geodetico, duale);
-			GeneraTuttiFile(duale, 
+			build_duale(geodetico, mesh);
+			GeneraTuttiFile(mesh, 
                      outfilename0D,
                      outfilename1D,
                      outfilename2D,

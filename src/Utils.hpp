@@ -2,9 +2,12 @@
 #include "PolygonalMesh.hpp"
 #include <string>
 #include <map>
+#include <vector>
+#include <Eigen/Eigen>
 
 using namespace std;
 using namespace PolygonalLibrary;
+using namespace Eigen;
 
 
 
@@ -41,7 +44,7 @@ void GeneraTuttiFile(const PolygonalMesh& mesh,
                      const string& outfilename3D);
 
 /// SCRIVERE CODICI PER QUESTE TRE FUNZIONI
-void GenerateDual(const PolygonalMesh &original, PolygonalMesh &dual);
+void build_duale(const PolygonalMesh &original, PolygonalMesh &dual);
 
 void WriteMeshToTxt(const PolygonalMesh &mesh, const std::string &prefix);
 

@@ -1,5 +1,7 @@
 #include "Utils.hpp"
 #include "PolygonalMesh.hpp"
+#include <vector>
+#include <Eigen/Eigen>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,6 +13,7 @@
 
 using namespace PolygonalLibrary;
 using namespace std;
+using namespace Eigen;
 
 /*-----------------------------------------------------------------------------------------------*/
 
@@ -410,7 +413,11 @@ static Vector3d CentroideCoordinate(const vector<int>& VerticesId, const MatrixX
         c += Cell0DsCoordinates.col(vid);
     }
     c /= static_cast<double>(VerticesId.size());   //media (statica_cast trasforma l'intero in double per evitare la diviosione intera)
-    return c.Normalizza();   
+	
+	double norm = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);   // calcolo la norma per normalizzare
+    Vector3d p(c[0]/norm, c[1]/norm, c[2]/norm);
+	
+    return p;   
     // VALUTARE round()
 }
 
