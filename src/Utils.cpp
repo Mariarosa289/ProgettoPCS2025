@@ -10,6 +10,8 @@
 #include <iomanip>
 #include <cmath>
 #include <numeric> 
+#include <queue>
+#include <list>
 
 using namespace PolygonalLibrary;
 using namespace std;
@@ -222,13 +224,14 @@ void build_solido(unsigned int p, unsigned int q, unsigned int b, unsigned int c
     iota(cell3D_faces.begin(), cell3D_faces.end(), 0);
     mesh.Cell3DsFaces.push_back(cell3D_faces);
 
-    // Marker (metti pure 0 o un altro intero se serve)
-    mesh.MarkerCell3Ds[0] = {0};
+
 	
     mesh.Cell2DsId.shrink_to_fit(); // shrink_to_fit libera la memoria inutilizzata
     mesh.Cell2DsEdges.shrink_to_fit();
     mesh.Cell2DsVertices.shrink_to_fit();
     mesh.Cell2DsNumEdges.shrink_to_fit();
+
+    
 }
 
 /*-----------------------------------------------------------------------------------------------*/
@@ -284,14 +287,30 @@ bool GeneraFileCell0D(const PolygonalMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) return false;
 
-    file << "Id, x, y, ShortPath\n";
+    file << "Id, x, y, z, ShortPath\n";
+    
+    auto it = mesh.MarkerCell0Ds.find(1);
+    list<unsigned int> ShortPath;
+    if (it != mesh.MarkerCell0Ds.end()) {
+        list<unsigned int> ShortPath = it->second;
+        cout << "La chiave 1 è presente nella mappa." << endl;
+        // Usa ShortPath come necessario
+    } else {
+        // La chiave 1 non è presente
+        cout << "La chiave 1 non è presente nella mappa." << endl;
+    }
+
 
     for (unsigned int i = 0; i < mesh.NumCell0Ds; ++i) {
         file << mesh.Cell0DsId[i] << ", "
              << setprecision(10) << mesh.Cell0DsCoordinates(0, i) << ", "
              << setprecision(10) << mesh.Cell0DsCoordinates(1, i) << ", "
-			 << setprecision(10) << mesh.Cell0DsCoordinates(2, i) << ", "
-             << 0 << "\n"; // oppure `ShortPath[i]` se lo aggiungi come campo
+			 << setprecision(10) << mesh.Cell0DsCoordinates(2, i) << ", ";
+            if (find(ShortPath.begin(), ShortPath.end(), mesh.Cell0DsId[i]) != ShortPath.end()) {
+                file << 1 << "\n";
+            } else {
+                file << 0 << "\n";
+            }
     }
     file.close();
 	
@@ -312,11 +331,28 @@ bool GeneraFileCell1D(const PolygonalMesh& mesh, const string& outfilename) {
 
     file << "Id, Id_Origine, Id_Fine, ShortPath\n";
 
+    auto it = mesh.MarkerCell1Ds.find(1);
+    list<unsigned int> ShortPath;
+    if (it != mesh.MarkerCell1Ds.end()) {
+        list<unsigned int> ShortPath = it->second;
+        cout << "La chiave 1 è presente nella mappa." << endl;
+        // Usa ShortPath come necessario
+    } else {
+        // La chiave 1 non è presente
+        cout << "La chiave 1 non è presente nella mappa." << endl;
+    }
+
     for (unsigned int i= 0; i < mesh.NumCell1Ds; ++i) {
         file << mesh.Cell1DsId[i] << ", " 
 		<< setprecision(10) << mesh.Cell1DsExtrema(0,i)<< ", " 
-		<<setprecision(10) << mesh.Cell1DsExtrema(1,i) << ", "		
-		<< 0 << "\n";
+		<<setprecision(10) << mesh.Cell1DsExtrema(1,i) << ", ";
+        
+        if (find(ShortPath.begin(), ShortPath.end(), mesh.Cell1DsId[i]) != ShortPath.end()) {
+            file << 1 << "\n";
+        } else {
+            file << 0 << "\n";
+        }
+        
     }
     file.close();
 
@@ -477,7 +513,7 @@ void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg) {
             // Crea uno spigolo tra i baricentri (collega le facce nel duale)
             GoldbergFacce.push_back({v1, v2}); // Qui creiamo una faccia composta da due vertici
         }
-    }.
+    }
     Goldberg.NumCell2Ds = static_cast<unsigned int>(GoldbergFacce.size());
     Goldberg.Cell2DsId.resize(Goldberg.NumCell2Ds);
     Goldberg.Cell2DsVertices = GoldbergFacce;
@@ -528,6 +564,141 @@ void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg) {
     Goldberg.Cell3DsEdges = {lati3D};
     Goldberg.Cell3DsFaces = {facce3D};
 } 
+
+/*-----------------------------------------------------------------------------------------------*/
+
+// Funzione per calcolare il cammino minimo
+
+void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int vertice_finale)   //sono gli id dei vertici 
+{
+    // Mappa di adiacenza per il grafo: key = id del vertice, value = lista di id dei vertici adiacenti
+    map<unsigned int, list<unsigned int>> ListaVerticiAdiacenti;
+    
+    // Creiamo la lista di adiacenza dai dati in Cell2DsVertices (cellette 2D)
+    for (unsigned int i = 0; i < mesh.NumCell2Ds; ++i) {
+        const auto& vertices = mesh.Cell2DsVertices[i];
+        for (size_t j = 0; j < vertices.size(); ++j) {
+            unsigned int v1 = vertices[j];
+            unsigned int v2 = vertices[(j + 1) % vertices.size()]; // Arco da v1 a v2 (ciclo per il bordo)
+            
+            ListaVerticiAdiacenti[v1].push_back(v2);
+            ListaVerticiAdiacenti[v2].push_back(v1); // Grafo non orientato
+        }
+    }
+
+    // Algoritmo di Dijkstra per trovare il cammino minimo
+
+    map<unsigned int, double> dist;   //vertici e relative distanze rispetto al nodo sorgente (vertice_iniziale)
+    map<unsigned int, unsigned int> pred;   //vertici e relativi nodi precedenti lungo il cammino minimo
+    priority_queue< pair<double, unsigned int>, vector<pair<double, unsigned int>>, greater<> > pq;
+    
+    // Inizializza la distanza del vertice di partenza
+    for (auto& entrata : ListaVerticiAdiacenti) {
+        dist[entrata.first] = numeric_limits<double>::infinity();   //serve per impostare un infinito
+    }
+    dist[vertice_iniziale] = 0;
+    pq.push({0, vertice_iniziale});
+
+    for (size_t i=0; i<dist.size(); i++){
+        pq.push({dist[i], i});
+    }
+    
+    while (!pq.empty()) {
+        unsigned int u = pq.top().second;   //u=vertice
+        double d = pq.top().first;   //d=distanza di u dal vertice_iniziale
+        pq.pop();   //tolgo l'elemento dalla coda con priorità
+        
+        // Se la distanza per il vertice corrente è maggiore della distanza già trovata, salta
+        if (d > dist[u]) continue;   //se soddisfatta, continuo col for
+        
+        // Esamina i vicini
+        for (unsigned int v : ListaVerticiAdiacenti[u]) {
+            double nuova_dist = dist[u] + 1; // Peso dell'arco (1 per semplicità, puoi usare distanze Euclidee se le hai)
+            if (nuova_dist < dist[v]) {
+                dist[v] = nuova_dist;
+                pred[v] = u;
+                pq.push({nuova_dist, v});
+            }
+        }
+    }
+
+    // Ricostruisci il cammino minimo partendo da vertice2
+    vector<unsigned int> path;
+    for (unsigned int u = vertice_finale; u != vertice_iniziale; u = pred[u]) {
+        if (pred.find(u) == pred.end()) {
+            cout << "Nessun cammino trovato!" << endl;
+            return;
+        }
+        path.push_back(u);
+    }
+    path.push_back(vertice_iniziale);
+    reverse(path.begin(), path.end());
+
+
+    // Marca i vertici nel cammino
+    /*for (unsigned int v : path) {
+        // Verifica prima se esiste la chiave 1 nella mappa
+        cout << "Verifica MarkerCell1Ds prima dell'inserimento: ";
+        for (auto& entry : mesh.MarkerCell1Ds) {
+            cout << entry.first << ": ";
+            for (unsigned int marker : entry.second) {
+                cout << marker << " ";
+            }
+            cout << endl;
+        }
+    }*/
+    
+    for (unsigned int v : path) {
+            mesh.MarkerCell0Ds[1].push_back(v);
+            cout << "vertice" << v <<endl;
+        }
+
+    /*cout << "Verifica MarkerCell1Ds dopo l'inserimento: ";
+        for (auto& entry : mesh.MarkerCell1Ds) {
+            cout << entry.first << ": ";
+            for (unsigned int marker : entry.second) {
+                cout << marker << " ";
+            }
+            cout << endl;*/
+
+        /*const auto it = mesh.MarkerCell1Ds.find(1);   // uso "auto" poichè it è un iteratore che non so dove punta 
+            if(it == mesh.MarkerCell1Ds.end())   // aggiungo un nuovo marker
+            {
+                mesh.MarkerCell1Ds.insert({1, {v}});
+                cout << "vertice" << v <<endl;
+            }
+            else   // aggiungo un elemento al marker
+            {
+                mesh.MarkerCell1Ds[1].push_back(v);
+                cout << "vertice" << v <<endl;
+            }
+        }*/
+
+    // Marca gli archi nel cammino
+    for (size_t i = 1; i < path.size(); ++i) {
+        unsigned int u = path[i-1];
+        unsigned int v = path[i];
+        // Trova l'arco tra u e v (Cell1D)
+        for (unsigned int j = 0; j < mesh.NumCell1Ds; ++j) {
+            if ((mesh.Cell1DsExtrema(0, j) == u && mesh.Cell1DsExtrema(1, j) == v) ||
+                (mesh.Cell1DsExtrema(0, j) == v && mesh.Cell1DsExtrema(1, j) == u)) {
+                const auto it = mesh.MarkerCell1Ds.find(1);   // uso "auto" poichè it è un iteratore che non so dove punta 
+                if(it == mesh.MarkerCell1Ds.end())   // aggiungo un nuovo marker
+                {
+                    mesh.MarkerCell1Ds.insert({1, {mesh.Cell1DsId[j]}});
+                    cout << "spigolo" << j <<endl;
+                }
+                else   // aggiungo un elemento al marker
+                {
+                    mesh.MarkerCell1Ds[1].push_back(mesh.Cell1DsId[j]);
+                    cout << "spigolo" << j <<endl;
+                }
+                break;
+            }
+        }
+    }
+}
+
 
 
 

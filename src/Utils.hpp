@@ -4,6 +4,8 @@
 #include <map>
 #include <vector>
 #include <Eigen/Eigen>
+#include <queue>
+#include <list>
 
 using namespace std;
 using namespace PolygonalLibrary;
@@ -43,41 +45,11 @@ void GeneraTuttiFile(const PolygonalMesh& mesh,
                      const string& outfilename2D,
                      const string& outfilename3D);
 
-/// SCRIVERE CODICI PER QUESTE TRE FUNZIONI
-void build_duale(const PolygonalMesh &original, PolygonalMesh &dual);
+static Vector3d CentroideCoordinate(const vector<int>& VerticesId, const MatrixXd& coordinates);
 
-void WriteMeshToTxt(const PolygonalMesh &mesh, const std::string &prefix);
+void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg);
 
-bool ComputeShortestPath(PolygonalMesh &mesh, unsigned int startId, unsigned int endId, std::vector<unsigned int> &path, double &totalLength);
-
+void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int vertice_finale);
 
 
-//**************************************************************************** */
-
-/// RIVEDERE COSA SONO
-
-namespace PolygonalLibrary
-{
-/// Import the triangular mesh and test if the mesh is correct
-/// mesh: a TriangularMesh struct
-/// return the result of the reading, true if is success, false otherwise
-bool ImportMesh(PolygonalMesh& mesh);   // RIVEDERE
-
-/// Import the Cell0D properties from Cell0Ds.csv file
-/// mesh: a TriangularMesh struct
-/// return the result of the reading, true if is success, false otherwise
-bool build_tetra(PolygonalMesh& mesh);
-
-/// Import the Cell1D properties from Cell1Ds.csv file
-/// mesh: a TriangularMesh struct
-/// return the result of the reading, true if is success, false otherwise
-bool build_octa(PolygonalMesh& mesh);
-
-/// Import the Cell2D properties from Cell2Ds.csv file
-/// mesh: a TriangularMesh struct
-/// return the result of the reading, true if is success, false otherwise
-bool build_ico(PolygonalMesh& mesh);
-
-
-}
 

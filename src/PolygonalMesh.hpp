@@ -4,6 +4,8 @@
 #include <map>
 #include <list>
 #include <Eigen/Eigen>
+#include <queue>
+#include <list>
 
 namespace PolygonalLibrary {
 
@@ -27,7 +29,7 @@ struct PolygonalMesh
     std::vector<std::vector<int>> Cell2DsVertices = {}; ///< Cell2D vertex ids, variable size per cell
     std::vector<int> Cell2DsNumEdges = {}; ///< Number of edges per Cell2D, size NumCell2Ds
     std::vector<std::vector<int>> Cell2DsEdges = {}; ///< Cell2D edge ids (Cell1D), variable size per cell
-    std::map<unsigned int, std::list<unsigned int>> MarkerCell2Ds = {}; ///< Cell2D markers
+    
 
   
   // === Cell3D ===
@@ -36,8 +38,9 @@ struct PolygonalMesh
     std::vector<std::vector<int>> Cell3DsVertices = {};
     std::vector<std::vector<int>> Cell3DsEdges = {};
     std::vector<std::vector<int>> Cell3DsFaces = {};
-    std::map<unsigned int, std::list<unsigned int>> MarkerCell3Ds = {};
+    
 	
 };
 
-} // namespace PolygonalLibrary
+} 
+
