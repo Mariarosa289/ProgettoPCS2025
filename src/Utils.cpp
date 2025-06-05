@@ -445,56 +445,39 @@ void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg) {
 
     // === Cell2D: una faccia per ogni vertice geodetico ===
     vector<vector<int>> GoldbergFacce;   //per andare dal vertice del geodetico alla faccia di Goldberg
-    for (unsigned int v = 0; v < geodetico.NumCell0Ds; ++v) {
-        vector<int> geodeticoFacceAdiacenti;
-        for (unsigned int f = 0; f < geodetico.NumCell2Ds; ++f) {
-            if (find(geodetico.Cell2DsVertices[f].begin(), geodetico.Cell2DsVertices[f].end(), v) != geodetico.Cell2DsVertices[f].end()) 
-            {
-                geodeticoFacceAdiacenti.push_back(f);
-            }
-        }
 
-        if (geodeticoFacceAdiacenti.size() < 3) continue;   //controllo se ci sono vertici che non condividono 3 facce
+    // Mappa dei lati per trovare le facce che li condividono
+    map<pair<int, int>, vector<int>> mapLatiFacce; // (lato) -> (facce che condividono questo lato)
 
-        /*vector<int> GoldbergVerticiDiFacce;   // vertici di una faccia di Goldberg
-        for (auto geodeticofid : geodeticoFacceAdiacenti)   // id di faccia geodetica mappata all'id di vertice di goldberg
-        {
-            GoldbergVerticiDiFacce.push_back(mapGoldbergVerticiID[geodeticofid]);
-        }
-        GoldbergFacce.push_back(GoldbergVerticiDiFacce);*/
-
-        Vector3d centro = geodetico.Cell0DsCoordinates.col(v);  // punto centrale
-        Vector3d normale = centro.normalized();  // normale alla superficie sferica
+    // Costruzione della mappa dei lati e delle facce adiacenti
+    for (unsigned int fid = 0; fid < geodetico.NumCell2Ds; ++fid) {
+        const auto& vertici = geodetico.Cell2DsVertices[fid];
         
-        // Base ortonormale tangente alla sfera in "centro"
-        Vector3d e1;
-        if (fabs(normale.x()) > fabs(normale.z()))
-            e1 = Vector3d(-normale.y(), normale.x(), 0.0).normalized();
-        else
-            e1 = Vector3d(0.0, -normale.z(), normale.y()).normalized();
-        Vector3d e2 = normale.cross(e1);
-
-        // Baricentri da ordinare
-        vector<pair<double, int>> angoli_e_id;
-        for (auto fid : geodeticoFacceAdiacenti) {
-            Vector3d bar = Goldberg.Cell0DsCoordinates.col(mapGoldbergVerticiID[fid]);
-            Vector3d r = (bar - centro).normalized();
-            double x = r.dot(e1);
-            double y = r.dot(e2);
-            double angolo = atan2(y, x);  // angolo nel piano locale
-            angoli_e_id.emplace_back(angolo, mapGoldbergVerticiID[fid]);
+        for (size_t i = 0; i < vertici.size(); ++i) {
+            int a = vertici[i];
+            int b = vertici[(i + 1) % vertici.size()];
+            
+            if (a > b) swap(a, b);  // Garantiamo che l'ordine sia (minore, maggiore)
+            
+            mapLatiFacce[make_pair(a, b)].push_back(fid); // Aggiungi faccia alla mappa
         }
-
-        sort(angoli_e_id.begin(), angoli_e_id.end());
-
-        vector<int> GoldbergVerticiDiFacce;
-        for (const auto& [_, gid] : angoli_e_id) {
-            GoldbergVerticiDiFacce.push_back(gid);
-        }
-
-        GoldbergFacce.push_back(GoldbergVerticiDiFacce);
     }
 
+    // Ora costruisci le facce nel duale
+    for (const auto& [lato, facce] : mapLatiFacce) {
+        if (facce.size() == 2) {
+            // Le due facce condividono questo lato, quindi collega i loro baricentri nel duale
+            int fid1 = facce[0];
+            int fid2 = facce[1];
+            
+            // Aggiungi i baricentri delle facce adiacenti come vertici nel duale
+            int v1 = mapGoldbergVerticiID[fid1];
+            int v2 = mapGoldbergVerticiID[fid2];
+            
+            // Crea uno spigolo tra i baricentri (collega le facce nel duale)
+            GoldbergFacce.push_back({v1, v2}); // Qui creiamo una faccia composta da due vertici
+        }
+    }.
     Goldberg.NumCell2Ds = static_cast<unsigned int>(GoldbergFacce.size());
     Goldberg.Cell2DsId.resize(Goldberg.NumCell2Ds);
     Goldberg.Cell2DsVertices = GoldbergFacce;
