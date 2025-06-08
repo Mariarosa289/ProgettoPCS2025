@@ -2,7 +2,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 cmake_minimum_required(VERSION 3.9)
 
-project(PolygonalMesh LANGUAGES CXX C VERSION 1.0.0)
+project(PolyhedralMesh LANGUAGES CXX C VERSION 1.0.0)
 
 # Set C++ Standard
 ################################################################################
@@ -22,42 +22,41 @@ endif (WIN32)
 
 ## Eigen3
 find_package(Eigen3 CONFIG REQUIRED)
-list(APPEND PolygonalMesh_LINKED_LIBRARIES PUBLIC Eigen3::Eigen)
+list(APPEND PolyhedralMesh_LINKED_LIBRARIES PUBLIC Eigen3::Eigen)
 
 ## Threads
 find_package(Threads REQUIRED)
-list(APPEND PolygonalMesh_LINKED_LIBRARIES PRIVATE Threads::Threads)
+list(APPEND PolyhedralMesh_LINKED_LIBRARIES PRIVATE Threads::Threads)
 
 ## GTest
 find_package(GTest REQUIRED)
 
-list(APPEND PolygonalMesh_LINKED_LIBRARIES PRIVATE GTest::gtest)
-list(APPEND PolygonalMesh_LINKED_LIBRARIES PRIVATE GTest::gtest_main)
-list(APPEND PolygonalMesh_LINKED_LIBRARIES PRIVATE GTest::gmock)
-list(APPEND PolygonalMesh_LINKED_LIBRARIES PRIVATE GTest::gmock_main)
+list(APPEND PolyhedralMesh_LINKED_LIBRARIES PRIVATE GTest::gtest)
+list(APPEND PolyhedralMesh_LINKED_LIBRARIES PRIVATE GTest::gtest_main)
+list(APPEND PolyhedralMesh_LINKED_LIBRARIES PRIVATE GTest::gmock)
+list(APPEND PolyhedralMesh_LINKED_LIBRARIES PRIVATE GTest::gmock_main)
 
 # Insert Sources
 ################################################################################
 add_subdirectory(src)
 
-list(APPEND PolygonalMesh_SOURCES ${polygonalMesh_sources})
-list(APPEND PolygonalMesh_HEADERS ${polygonalMesh_headers})
-list(APPEND PolygonalMesh_INCLUDE ${polygonalMesh_includes})
+list(APPEND PolyhedralMesh_SOURCES ${polyhedralMesh_sources})
+list(APPEND PolyhedralMesh_HEADERS ${polyhedralMesh_headers})
+list(APPEND PolyhedralMesh_INCLUDE ${polyhedralMesh_includes})
 
 add_subdirectory(ExportParaview)
 
-list(APPEND PolygonalMesh_SOURCES ${src_paraview_sources})
-list(APPEND PolygonalMesh_HEADERS ${src_paraview_headers})
-list(APPEND PolygonalMesh_INCLUDE ${src_paraview_includes})
+list(APPEND PolyhedralMesh_SOURCES ${src_paraview_sources})
+list(APPEND PolyhedralMesh_HEADERS ${src_paraview_headers})
+list(APPEND PolyhedralMesh_INCLUDE ${src_paraview_includes})
 
 # Create executable
 ################################################################################
 add_executable(${PROJECT_NAME}
       main.cpp
-      ${PolygonalMesh_SOURCES}
-      ${PolygonalMesh_HEADERS})
+      ${PolyhedralMesh_SOURCES}
+      ${PolyhedralMesh_HEADERS})
 
-
-target_link_libraries(${PROJECT_NAME} ${PolygonalMesh_LINKED_LIBRARIES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${PolygonalMesh_INCLUDE})
+target_link_libraries(${PROJECT_NAME} ${PolyhedralMesh_LINKED_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${PolyhedralMesh_INCLUDE})
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
