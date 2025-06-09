@@ -287,31 +287,25 @@ bool GeneraFileCell0D(const PolygonalMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) return false;
 
-    file << "Id, x, y, z, ShortPath\n";
+    file << "Id, x, y, z\n";
     
+    // CONTROLLO MARKER (da eliminare)
     auto it = mesh.MarkerCell0Ds.find(1);
-    list<unsigned int> ShortPath;
     if (it != mesh.MarkerCell0Ds.end()) {
-        list<unsigned int> ShortPath = it->second;
         cout << "La chiave 1 è presente nella mappa." << endl;
-        // Usa ShortPath come necessario
     } else {
-        // La chiave 1 non è presente
         cout << "La chiave 1 non è presente nella mappa." << endl;
     }
 
 
-    for (unsigned int i = 0; i < mesh.NumCell0Ds; ++i) {
+    for (unsigned int i = 0; i < mesh.NumCell0Ds; ++i) {   //stampa sul outputFile
         file << mesh.Cell0DsId[i] << ", "
              << setprecision(10) << mesh.Cell0DsCoordinates(0, i) << ", "
              << setprecision(10) << mesh.Cell0DsCoordinates(1, i) << ", "
-			 << setprecision(10) << mesh.Cell0DsCoordinates(2, i) << ", ";
-            if (find(ShortPath.begin(), ShortPath.end(), mesh.Cell0DsId[i]) != ShortPath.end()) {
-                file << 1 << "\n";
-            } else {
-                file << 0 << "\n";
-            }
+			 << setprecision(10) << mesh.Cell0DsCoordinates(2, i) << "\n";
+            
     }
+
     file.close();
 	
 	
@@ -329,30 +323,20 @@ bool GeneraFileCell1D(const PolygonalMesh& mesh, const string& outfilename) {
         return false;
     }
 
-    file << "Id, Id_Origine, Id_Fine, ShortPath\n";
+    file << "Id, Id_Origine, Id_Fine\n";
 
+    // CONTROLLO MARKER (da eliminare)
     auto it = mesh.MarkerCell1Ds.find(1);
-    list<unsigned int> ShortPath;
     if (it != mesh.MarkerCell1Ds.end()) {
-        list<unsigned int> ShortPath = it->second;
         cout << "La chiave 1 è presente nella mappa." << endl;
-        // Usa ShortPath come necessario
     } else {
-        // La chiave 1 non è presente
         cout << "La chiave 1 non è presente nella mappa." << endl;
     }
 
-    for (unsigned int i= 0; i < mesh.NumCell1Ds; ++i) {
+    for (unsigned int i= 0; i < mesh.NumCell1Ds; ++i) {   // stampa sul outputFile
         file << mesh.Cell1DsId[i] << ", " 
 		<< setprecision(10) << mesh.Cell1DsExtrema(0,i)<< ", " 
-		<<setprecision(10) << mesh.Cell1DsExtrema(1,i) << ", ";
-        
-        if (find(ShortPath.begin(), ShortPath.end(), mesh.Cell1DsId[i]) != ShortPath.end()) {
-            file << 1 << "\n";
-        } else {
-            file << 0 << "\n";
-        }
-        
+		<<setprecision(10) << mesh.Cell1DsExtrema(1,i) << "\n";
     }
     file.close();
 
@@ -613,7 +597,10 @@ void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int v
         
         // Esamina i vicini
         for (unsigned int v : ListaVerticiAdiacenti[u]) {
-            double nuova_dist = dist[u] + 1; // Peso dell'arco (1 per semplicità, puoi usare distanze Euclidee se le hai)
+            double dist_uv = sqrt(pow(mesh.Cell0DsCoordinates(0,u)-mesh.Cell0DsCoordinates(0,v),2) +   //distanza euclidea uv
+                                  pow(mesh.Cell0DsCoordinates(1,u)-mesh.Cell0DsCoordinates(1,v),2) +
+                                  pow(mesh.Cell0DsCoordinates(2,u)-mesh.Cell0DsCoordinates(2,v),2) );
+            double nuova_dist = dist[u] + dist_uv;   // dist_u0 + dist_uv
             if (nuova_dist < dist[v]) {
                 dist[v] = nuova_dist;
                 pred[v] = u;
@@ -622,7 +609,7 @@ void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int v
         }
     }
 
-    // Ricostruisci il cammino minimo partendo da vertice2
+    // Ricostruisci il cammino minimo partendo da vertice_finale
     vector<unsigned int> path;
     for (unsigned int u = vertice_finale; u != vertice_iniziale; u = pred[u]) {
         if (pred.find(u) == pred.end()) {
@@ -633,6 +620,10 @@ void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int v
     }
     path.push_back(vertice_iniziale);
     reverse(path.begin(), path.end());
+
+    //memorizzo il numero degli archi del path e la somma totale delle distanza
+    mesh.num_archiPath = path.size()-1;   //poichè path contiene vertici
+    mesh.lunghezza_Path = dist[vertice_finale];
 
 
     // Marca i vertici nel cammino
@@ -648,6 +639,7 @@ void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int v
         }
     }*/
     
+    // marcare vertici del cammino minimo
     for (unsigned int v : path) {
             mesh.MarkerCell0Ds[1].push_back(v);
             cout << "vertice" << v <<endl;
@@ -698,6 +690,9 @@ void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int v
         }
     }
 }
+
+
+
 
 
 
