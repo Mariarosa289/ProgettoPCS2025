@@ -30,9 +30,7 @@ struct PolygonalMesh
     std::vector<int> Cell2DsNumEdges = {}; ///< Number of edges per Cell2D, size NumCell2Ds
     std::vector<std::vector<int>> Cell2DsEdges = {}; ///< Cell2D edge ids (Cell1D), variable size per cell
     
-
-  
-  // === Cell3D ===
+    // === Cell3D ===
     unsigned int NumCell3Ds = 0;
     std::vector<unsigned int> Cell3DsId = {};
     std::vector<std::vector<int>> Cell3DsVertices = {};
