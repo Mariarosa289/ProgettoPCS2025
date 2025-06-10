@@ -36,14 +36,14 @@ int main () {
 
 		if (b==0 && c==0) throw runtime_error("Errore: uno tra b e c deve essere > 0.");
 
-		PolygonalMesh mesh;
+		PolyhedralMesh mesh;
 		
 		if(p==3 && q>=3 && q<=5 && (b == 0 || c == 0)) {   //geodetico in classe_1 senza duale	
 			if(b==0) {swap(b, c);}
 			build_classe_1(p, q, b, c, mesh);	
 
 		} else if(q==3 && (p==4 || p==5) && (b == 0 || c == 0)) {   //duale in classe_1
-			PolygonalMesh geodetico;
+			PolyhedralMesh geodetico;
 
 			if(b==0) {swap(b, c);}
 			build_classe_1(q, p, b, c, geodetico);
@@ -52,8 +52,8 @@ int main () {
 		} else if(p==3 && q>=3 && q<=5 && (b==c)) {   //geodetico in classe_2 senza duale
 			build_classe_2(p, q, b, c, mesh);
 
-		} else ifelse if(q==3 && (p==4 || p==5) && (b == c)) {   // duale in classe_2
-			PolygonalMesh geodetico;
+		} else if(q==3 && (p==4 || p==5) && (b == c)) {   // duale in classe_2
+			PolyhedralMesh geodetico;
 
 			build_classe_2(q, p, b, c, geodetico);
 			build_duale(geodetico, mesh);

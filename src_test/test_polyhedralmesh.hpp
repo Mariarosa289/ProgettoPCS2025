@@ -15,7 +15,7 @@
 	// inserimento di un singolo vertice in Cell0D
 TEST(Cell0DTest, SingleVertexPopulation) { 
 //Il primo parametro è il gruppo di test, e il secondo è il nome del singolo test.
-    PolygonalLibrary::PolygonalMesh mesh;
+    PolyhedralLibrary::PolyhedralMesh mesh;
 	// inizializzo il numero di celle a 1
     mesh.NumCell0Ds = 1; 
 	// il primo id di Cell0DsId sarà 0
@@ -35,7 +35,7 @@ TEST(Cell0DTest, SingleVertexPopulation) {
 
 	// inserimento di più vertici in Cell0D
 TEST(Cell0DTest, MultipleVerticesPopulation) {
-    PolygonalLibrary::PolygonalMesh mesh;
+    PolyhedralLibrary::PolyhedralMesh mesh;
 	
 	// inizializzo il numero di celle a 3
     mesh.NumCell0Ds = 3;
@@ -72,7 +72,7 @@ TEST(Cell0DTest, MultipleVerticesPopulation) {
 	// inserimento di uno singolo spigolo in Cell1D
 
 TEST(Cell1DTest, SingleEdgePopulation) {
-    PolygonalLibrary::PolygonalMesh mesh;
+    PolyhedralLibrary::PolyhedralMesh mesh;
 	
 	// inizializzo il numero di spigoli a 1
     mesh.NumCell1Ds = 1;
@@ -92,7 +92,7 @@ TEST(Cell1DTest, SingleEdgePopulation) {
 	// inserimento di più singoli in Cell1D
 
 TEST(Cell1DTest, MultipleEdgePopulation) {
-    PolygonalLibrary::PolygonalMesh mesh;
+    PolyhedralLibrary::PolyhedralMesh mesh;
 
 	// inizializzo il numero di spigoli a 1
     mesh.NumCell1Ds = 3;
@@ -116,7 +116,7 @@ TEST(Cell1DTest, MultipleEdgePopulation) {
 	// inserimento di una singola faccia in Cell2D
 	// verifico il caso base del solido geodetico, in cui la triangolazione crea solo facce triangolari
 TEST(Cell2DTest, SingleFacePopulation) {
-    PolygonalLibrary::PolygonalMesh mesh;
+    PolyhedralLibrary::PolyhedralMesh mesh;
 
     mesh.NumCell2Ds = 1;
     mesh.Cell2DsId.push_back(0);
@@ -140,7 +140,7 @@ TEST(Cell2DTest, SingleFacePopulation) {
 	// verifico il caso di facce triangolari, quadrate ed esagonali, che sono quelle che si presentano nella costruzione del solido di base e del suo duale ( per la prima triangoolazione)
 
 TEST(Cell2DTest, MultipleFacesPopulation) {
-    PolygonalLibrary::PolygonalMesh mesh;
+    PolyhedralLibrary::PolyhedralMesh mesh;
 
     mesh.NumCell2Ds = 3;
     mesh.Cell2DsId = {0, 1, 2};
@@ -181,10 +181,10 @@ TEST(Cell2DTest, MultipleFacesPopulation) {
 // testo se la costruzione dell'ottaedro avviene in maniera regolare, rispettando il numero di vertici, spigoli e facce//
 
 TEST(BuildSolidoTest, OctahedronTriangulatedOnce) {
-    PolygonalLibrary::PolygonalMesh mesh;
+    PolyhedralLibrary::PolyhedralMesh mesh;
 
     // Ottaedro triangolato con 1 suddivisione
-    EXPECT_NO_THROW(build_solido(3, 4, 1, 0, mesh));
+    EXPECT_NO_THROW(build_classe_1(3, 4, 1, 0, mesh));
 	
     // Verifica esatta dei numeri
     EXPECT_EQ(mesh.NumCell0Ds, 6); // numero atteso di vertici
@@ -235,23 +235,23 @@ TEST(BuildSolidoTest, OctahedronTriangulatedOnce) {
 	
 	
 TEST(BuildSolidoTest, InvalidInputs) {
-    PolygonalLibrary::PolygonalMesh mesh;
+    PolyhedralLibrary::PolyhedralMesh mesh;
 
     // p non valido
-    EXPECT_THROW(build_solido(4, 4, 2, 0, mesh), std::runtime_error);
+    EXPECT_THROW(build_classe_1(4, 4, 2, 0, mesh), std::runtime_error);
 
     // c non valido
-    EXPECT_THROW(build_solido(3, 4, 2, 1, mesh), std::runtime_error);
+    EXPECT_THROW(build_classe_1(3, 4, 2, 1, mesh), std::runtime_error);
 
     // ControllaInput fallisce
-    EXPECT_THROW(build_solido(3, 0, 1, 0, mesh), std::runtime_error); 
+    EXPECT_THROW(build_classe_1(3, 0, 1, 0, mesh), std::runtime_error); 
 }
 
 // test per verificare costruzione coerente del file: controllo che il numero di righe nei file relativi ai vertici,spigoli e facce sia uguale al numero di vertci spigoli e facce del poliedro generato //
 
 TEST(BuildSolidoTest, FilesConsistencyWithMesh) {
-    PolygonalLibrary::PolygonalMesh mesh;
-    build_solido(3, 4, 1, 0, mesh);
+    PolyhedralLibrary::PolyhedralMesh mesh;
+    build_classe_1(3, 4, 1, 0, mesh);
 
     // Genera i file, passandogli nome file
     GeneraFileCell0D(mesh, "Cell0D.txt");

@@ -1,5 +1,5 @@
 #include "Utils.hpp"
-#include "PolygonalMesh.hpp"
+#include "PolyhedralMesh.hpp"
 #include <vector>
 #include <Eigen/Eigen>
 #include <iostream>
@@ -12,8 +12,10 @@
 #include <numeric> 
 #include <queue>
 #include <list>
+#include <set>
+#include <algorithm>
 
-using namespace PolygonalLibrary;
+using namespace PolyhedralLibrary;
 using namespace std;
 using namespace Eigen;
 
@@ -89,7 +91,7 @@ void build_tetra(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce
 
 unsigned int salva_vertice_norm(const array<double,3>& coord,
                            map<array<double,3>, unsigned int>& map0D,
-                           PolygonalMesh& mesh) 
+                           PolyhedralMesh& mesh) 
 {
     static unsigned int vid = 0;
     auto norm = Normalizza(coord);
@@ -106,7 +108,7 @@ unsigned int salva_vertice_norm(const array<double,3>& coord,
 
 /*-----------------------------------------------------------------------------------------------*/
 
-void build_classe_1(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolygonalMesh& mesh) {
+void build_classe_1(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolyhedralMesh& mesh) {
     
     vector<array<double, 3>> vertici_iniziali;
     vector<array<int, 3>> facce_iniziali;
@@ -234,7 +236,7 @@ mesh
 // Outputs : id del vertice
 */
 unsigned int inserisci_vertice(array<double,3> coord, 
-                               PolygonalMesh& mesh) {
+                               PolyhedralMesh& mesh) {
     array<double,3> norm = Normalizza(coord);
     for (unsigned int i = 0; i < mesh.NumCell0Ds; ++i) {
         if ((abs(mesh.Cell0DsCoordinates(0,i) - norm[0]) < 1e-8) &&   //controllo se è già nel Cell0DsCoordinates
@@ -277,13 +279,13 @@ return {(A[0]+B[0])/2.0, (A[1]+B[1])/2.0, (A[2]+B[2])/2.0};
 /* 
 // Funzione : mesh secondo la triangolazione di classe 2 con b = c con b>0 (classe II), considerando:
 // Inputs : p, q, b, c==b con b > 0
-// Outputs : riempimento del mesh in PolygonalMesh
+// Outputs : riempimento del mesh in PolyhedralMesh
 */
 void build_classe_2(unsigned int p, 
                     unsigned int q, 
                     unsigned int b, 
                     unsigned int c, 
-                    PolygonalMesh& mesh) {
+                    PolyhedralMesh& mesh) {
 
     map<array<int,3>, unsigned int> coordBari_id;   // key: vettori per coord bari -> id del bari  
     map<pair<unsigned int,unsigned int>, unsigned int> archi_mappa;   // key: coppia di id di vertici -> id dell'arco
@@ -357,11 +359,11 @@ void build_classe_2(unsigned int p,
             array<double,3> B = {mesh.Cell0DsCoordinates(0,i1), mesh.Cell0DsCoordinates(1,i1), mesh.Cell0DsCoordinates(2,i1)};
             array<double,3> C = {mesh.Cell0DsCoordinates(0,i2), mesh.Cell0DsCoordinates(1,i2), mesh.Cell0DsCoordinates(2,i2)};
             array<double,3> G = Baricentro(A,B,C);   // calcolo bari del sottotriangolo
-            unsigned int G_id = inserisci_vertice(G);   // Cell0DsCoordinates e Cell0DsId del baricentro
+            unsigned int G_id = inserisci_vertice(G, mesh);   // Cell0DsCoordinates e Cell0DsId del baricentro
             bari_id.push_back(G_id);
 
             /// LATI COI PUNTI_MEDI
-            array<pair<unsigned int,unsigned int>,3> lati = {{i0,i1},{i1,i2},{i2,i0}};   //lati del sottotriangolo
+            array<pair<unsigned int,unsigned int>,3> lati = {make_pair(i0,i1),make_pair(i1,i2),make_pair(i2,i0)};   //lati del sottotriangolo
             vector<int> lati_id;   // id lati
             for (auto [u,v] : lati) {
                 if (u > v) swap(u,v);   //  ordine (min, max)
@@ -371,7 +373,7 @@ void build_classe_2(unsigned int p,
                     array<double,3> P1 = {mesh.Cell0DsCoordinates(0,u), mesh.Cell0DsCoordinates(1,u), mesh.Cell0DsCoordinates(2,u)};
                     array<double,3> P2 = {mesh.Cell0DsCoordinates(0,v), mesh.Cell0DsCoordinates(1,v), mesh.Cell0DsCoordinates(2,v)};
                     array<double,3> M = PuntoMedio(P1, P2);
-                    unsigned int M_id = inserisci_vertice(M);
+                    unsigned int M_id = inserisci_vertice(M,mesh);
 
                     /// LATI BARI-PUNTO_MEDIO
                     pair<unsigned int,unsigned int> BM_id = {min(M_id,G_id), max(M_id,G_id)};   
@@ -430,11 +432,13 @@ void build_classe_2(unsigned int p,
 
         /// LATI NELLA MESH
         mesh.Cell1DsExtrema.resize(2, archi.size());
+        map<pair<int,int>, int> mappa_id_archi;
         mesh.NumCell1Ds = 0;   // NumCell1Ds
         for (const auto& [a,b] : archi) {
             mesh.Cell1DsId.push_back(mesh.NumCell1Ds);   // Cell1DsId
             mesh.Cell1DsExtrema(0, mesh.NumCell1Ds) = a;   // Cell1DsExtrema
             mesh.Cell1DsExtrema(1, mesh.NumCell1Ds) = b;
+            mappa_id_archi[make_pair(a,b)] = mesh.NumCell1Ds;
             mesh.NumCell1Ds++;
         }
         
@@ -447,23 +451,23 @@ void build_classe_2(unsigned int p,
             vector<pair<unsigned int, unsigned int>> lati_consecutivi;   // raccolta di lati che hanno come un estremo v
             for(const auto& [c,d] : archi) {
                 if (c==v || d==v && c!=u) {
-                    lati_consecutivi.push_back([c,d]);
+                    lati_consecutivi.push_back(make_pair(c,d));
 
                     for (const auto& [i,j] : lati_consecutivi) {
                         if (i==u || j==u) { 
-                            vector<unsigned int> triangolo = {u,v,i,j};   // faccia
+                            vector<int> triangolo = {u,v,i,j};   // faccia
                             sort(triangolo.begin(), triangolo.end());
                             auto it = unique(triangolo.begin(), triangolo.end());   //individuo i vertici ripetuti
                             triangolo.erase(it, triangolo.end());   // elimino i vertici ripetuti
 
-                            pair<unsigned int> lato1  = {triangolo[0], triangolo[1]} ;
-                            pair<unsigned int> lato2  = {triangolo[1], triangolo[2]} ;
-                            pair<unsigned int> lato3  = {triangolo[0], triangolo[2]} ;
+                            pair<int,int> lato1  = make_pair(triangolo[0], triangolo[1]) ;
+                            pair<int,int> lato2  = make_pair(triangolo[1], triangolo[2]) ;
+                            pair<int,int> lato3  = make_pair(triangolo[0], triangolo[2]) ;
 
-                            if (mesh.Cell2DsVertices.find(triangolo) != mesh.Cell2DsVertices.end()) {
+                            if (find(mesh.Cell2DsVertices.begin(), mesh.Cell2DsVertices.end(), triangolo)== mesh.Cell2DsVertices.end() ){
                                 mesh.Cell2DsId.push_back(mesh.NumCell2Ds);   // Cell2DsId
                                 mesh.Cell2DsVertices.push_back(triangolo);   // Cell2DsVertices
-                                mesh.Cell2DsEdges.push_back({archi.find(lato1), archi.find(lato2), archi.find(lato3) });   //Cell2DsEdges
+                                mesh.Cell2DsEdges.push_back({mappa_id_archi[lato1],mappa_id_archi[lato2], mappa_id_archi[lato3]});   //Cell2DsEdges
                                 mesh.Cell2DsNumEdges.push_back(3);   // Cell2DsNumEdges
                                 mesh.NumCell2Ds++;
                             }
@@ -503,7 +507,7 @@ void build_classe_2(unsigned int p,
 /*-----------------------------------------------------------------------------------------------*/
 
 /// Funzione che genera tutti i file
-void GeneraTuttiFile(const PolygonalMesh& mesh, 
+void GeneraTuttiFile(const PolyhedralMesh& mesh, 
                      const string& outfilename0D,
                      const string& outfilename1D,
                      const string& outfilename2D,
@@ -549,7 +553,7 @@ void GeneraTuttiFile(const PolygonalMesh& mesh,
 
 /// Funzione che genera il file Cell0D
 
-bool GeneraFileCell0D(const PolygonalMesh& mesh, const string& outfilename) {
+bool GeneraFileCell0D(const PolyhedralMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) return false;
 
@@ -582,7 +586,7 @@ bool GeneraFileCell0D(const PolygonalMesh& mesh, const string& outfilename) {
 
 /// Funzione che genera il file Cell1D
 
-bool GeneraFileCell1D(const PolygonalMesh& mesh, const string& outfilename) {
+bool GeneraFileCell1D(const PolyhedralMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) {
         cerr << "Errore apertura file " << outfilename << endl;
@@ -614,7 +618,7 @@ bool GeneraFileCell1D(const PolygonalMesh& mesh, const string& outfilename) {
 
 /// Funzione che genera il file Cell2D
 
-bool GeneraFileCell2D(const PolygonalMesh& mesh, const string& outfilename) {
+bool GeneraFileCell2D(const PolyhedralMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) {
         cerr << "Errore apertura file " << outfilename << endl;
@@ -648,7 +652,7 @@ bool GeneraFileCell2D(const PolygonalMesh& mesh, const string& outfilename) {
 /// Funzione che genera il file Cell3D
 
 
-bool GeneraFileCell3D(const PolygonalMesh& mesh, const string& outfilename) {
+bool GeneraFileCell3D(const PolyhedralMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) {
         cerr << "Errore apertura file " << outfilename << endl;
@@ -712,9 +716,9 @@ static Vector3d CentroideCoordinate(const vector<int>& VerticesId, const MatrixX
 Function: costruisce il duale
 */
 
-void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg) {
+void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& Goldberg) {
 
-    Goldberg = PolygonalMesh();   // serve per evitare una copia e lavorare direttamente per reference
+    Goldberg = PolyhedralMesh();   // serve per evitare una copia e lavorare direttamente per reference
 
     // === Cell0D: un vertice per ogni faccia geodetico ===
     map<unsigned int, unsigned int> mapGoldbergVerticiID;   //mappa per andare dalla faccia del geodetico al vertice del duale
@@ -819,7 +823,7 @@ void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg) {
 
 // Funzione per calcolare il cammino minimo
 
-void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int vertice_finale)   //sono gli id dei vertici 
+void Dijkstra(PolyhedralMesh& mesh, unsigned int vertice_iniziale, unsigned int vertice_finale)   //sono gli id dei vertici 
 {
     // Mappa di adiacenza per il grafo: key = id del vertice, value = lista di id dei vertici adiacenti
     map<unsigned int, list<unsigned int>> ListaVerticiAdiacenti;
