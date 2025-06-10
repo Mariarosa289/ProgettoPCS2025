@@ -1,4 +1,4 @@
-list(APPEND src_test_headers ${CMAKE_CURRENT_SOURCE_DIR}/test_polygonalmesh.hpp)
+list(APPEND src_test_headers ${CMAKE_CURRENT_SOURCE_DIR}/test_polyhedralmesh.hpp)
 
 list(APPEND src_test_includes ${CMAKE_CURRENT_SOURCE_DIR})
 

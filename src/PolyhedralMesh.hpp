@@ -3,13 +3,13 @@
 #include <vector>
 #include <map>
 #include <list>
-#include <Eigen/Eigen>
+#include <Eigen/Dense>
 #include <queue>
 #include <list>
 
-namespace PolygonalLibrary {
+namespace PolyhedralLibrary {
 
-struct PolygonalMesh
+struct PolyhedralMesh
 {
     // === Cell0D ===
     unsigned int NumCell0Ds = 0; ///< number of Cell0D

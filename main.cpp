@@ -1,8 +1,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <Eigen/Eigen>
-#include "PolygonalMesh.hpp"
+#include <Eigen/Dense>
+#include "PolyhedralMesh.hpp"
 #include "Utils.hpp"
 #include <queue>
 #include <map>
@@ -12,7 +12,7 @@
 
 using namespace std;
 using namespace Eigen;
-using namespace PolygonalLibrary;
+using namespace PolyhedralLibrary;
 
 
 int main () {

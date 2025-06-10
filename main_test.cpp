@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "test_polygonalmesh.hpp"
+#include "test_polyhedralmesh.hpp"
 
 int main(int argc, char *argv[])
 {
