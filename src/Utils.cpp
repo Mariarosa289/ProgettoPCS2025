@@ -242,6 +242,7 @@ unsigned int inserisci_vertice(array<double,3> coord,
         if ((abs(mesh.Cell0DsCoordinates(0,i) - norm[0]) < 1e-8) &&   //controllo se è già nel Cell0DsCoordinates
             (abs(mesh.Cell0DsCoordinates(1,i) - norm[1]) < 1e-8) &&
             (abs(mesh.Cell0DsCoordinates(2,i) - norm[2]) < 1e-8)) { return i;}
+            }
     
     unsigned int id = mesh.NumCell0Ds++;
     mesh.Cell0DsId.push_back(id);   // Cell0DsID
@@ -250,7 +251,7 @@ unsigned int inserisci_vertice(array<double,3> coord,
     mesh.Cell0DsCoordinates(1,id) = norm[1];
     mesh.Cell0DsCoordinates(2,id) = norm[2];
     return id;
-    }
+    
 }
 
 /*-----------------------------------------------------------------------------------------------*/
@@ -445,17 +446,18 @@ void build_classe_2(unsigned int p,
         /// FACCE NELLA MESH
         mesh.NumCell2Ds = 0;
         for(const auto& [a,b] : archi) {
-            unsigned int u = a;
+            unsigned int u = a; 
             unsigned int v = b;
 
-            vector<pair<unsigned int, unsigned int>> lati_consecutivi;   // raccolta di lati che hanno come un estremo v
+            vector<pair<unsigned int,unsigned int>> lati_consecutivi;   // raccolta di lati che hanno come un estremo v
             for(const auto& [c,d] : archi) {
+	            
                 if (c==v || d==v && c!=u) {
                     lati_consecutivi.push_back(make_pair(c,d));
 
                     for (const auto& [i,j] : lati_consecutivi) {
                         if (i==u || j==u) { 
-                            vector<int> triangolo = {u,v,i,j};   // faccia
+                            vector< int> triangolo = {(int)u, (int)v ,(int)i, (int)j};   // faccia
                             sort(triangolo.begin(), triangolo.end());
                             auto it = unique(triangolo.begin(), triangolo.end());   //individuo i vertici ripetuti
                             triangolo.erase(it, triangolo.end());   // elimino i vertici ripetuti
