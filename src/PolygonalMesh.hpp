@@ -14,7 +14,7 @@ struct PolygonalMesh
     // === Cell0D ===
     unsigned int NumCell0Ds = 0; ///< number of Cell0D
     std::vector<unsigned int> Cell0DsId = {}; ///< Cell0D ids, size NumCell0Ds
-    Eigen::MatrixXd Cell0DsCoordinates = {}; ///< Cell0D coordinates, shape: X x NumCell0Ds (x,y)
+    Eigen::MatrixXd Cell0DsCoordinates = {}; ///< Cell0D coordinates, shape: X x NumCell0Ds (x,y,z)
     std::map<unsigned int, std::list<unsigned int>> MarkerCell0Ds = {}; ///< Cell0D markers, e.g., ShortestPath marker
 
     // === Cell1D ===
@@ -39,8 +39,9 @@ struct PolygonalMesh
     std::vector<std::vector<int>> Cell3DsEdges = {};
     std::vector<std::vector<int>> Cell3DsFaces = {};
     
-	
+	// === Cammino Minimo Path ===
+  unsigned int num_archiPath = 0;
+  double lunghezza_Path = 0.0;
 };
 
 } 
-

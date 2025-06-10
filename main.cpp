@@ -78,7 +78,15 @@ int main () {
         string outfilename1D="Cell1Ds.txt";
         string outfilename2D="Cell2Ds.txt";
         string outfilename3D="Cell3Ds.txt";
-
+		
+		std::cout << "NumCell0Ds = " << mesh.NumCell0Ds << ", size Cell0DsId = " << mesh.Cell0DsId.size() << ", Cell0DsCoordinates.cols() = " << mesh.Cell0DsCoordinates.cols() << std::endl;
+		std::cout << "NumCell1Ds = " << mesh.NumCell1Ds << ", size Cell1DsId = " << mesh.Cell1DsId.size() << ", Cell1DsExtrema.cols() = " << mesh.Cell1DsExtrema.cols() << std::endl;
+		std::cout << "NumCell2Ds = " << mesh.NumCell2Ds << ", size Cell2DsId = " << mesh.Cell2DsId.size() << std::endl;
+		
+		std::cout << "Cell2DsId.size() = " << mesh.Cell2DsId.size() << std::endl;
+		std::cout << "Cell2DsVertices.size() = " << mesh.Cell2DsVertices.size() << std::endl;
+		std::cout << "Cell2DsNumEdges.size() = " << mesh.Cell2DsNumEdges.size() << std::endl;
+		
 		GeneraTuttiFile(mesh, 
                      outfilename0D,
                      outfilename1D,
@@ -136,3 +144,6 @@ int main () {
 		
 	return 0;
 	}
+	
+	
+

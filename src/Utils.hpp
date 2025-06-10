@@ -51,5 +51,15 @@ void build_duale(const PolygonalMesh& geodetico, PolygonalMesh& Goldberg);
 
 void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int vertice_finale);
 
+void triangolazione_baricentrica_b_c(
+    const array<double,3>& A,
+    const array<double,3>& B,
+    const array<double,3>& C,
+    unsigned int b,
+    map<array<double,3>, unsigned int>& map0D,
+    map<pair<unsigned int,unsigned int>, unsigned int>& map1D,
+    PolygonalMesh& mesh,
+    unsigned int& fid
+) ;
 
 
