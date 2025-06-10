@@ -688,4 +688,3 @@ void Dijkstra(PolygonalMesh& mesh, unsigned int vertice_iniziale, unsigned int v
                 break;
             }
         }
-    }

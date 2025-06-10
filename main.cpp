@@ -43,8 +43,7 @@ int main () {
 		if(p==3 && q>=3 && q<=5 && (b == 0 || c == 0 || b == c)) {   //geodetico senza duale
 
 			if(b==0) {swap(b, c);}
-			build_solido(p, q, b, c, mesh);
-			
+			build_solido(p, q, b, c, mesh);	
 		} else if(q==3 && (p==4 || p==5) && (b == 0 || c == 0 || b == c)) {
 			PolygonalMesh geodetico;
 			
@@ -69,7 +68,8 @@ int main () {
 			throw runtime_error("ID dei vertici inseriti non validi. Inserire di nuovo tutti i parametri.");
 
 			Dijkstra(mesh, vertice_iniziale, vertice_finale);
-
+			cout << "Il cammino minimo che va da " << vertice_iniziale << " a " << vertice_finale << " è formato da " 
+			<< mesh.num_archiPath << " lati e ha lunghezza " << mesh.lunghezza_Path << "." << endl;
 		}
 
 		//i 4 file di output
