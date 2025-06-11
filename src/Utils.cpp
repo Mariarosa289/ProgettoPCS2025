@@ -14,6 +14,7 @@
 #include <list>
 #include <set>
 #include <algorithm>
+#include <unordered_set>
 
 using namespace PolyhedralLibrary;
 using namespace std;
@@ -242,7 +243,7 @@ unsigned int inserisci_vertice(array<double,3> coord,
         if ((abs(mesh.Cell0DsCoordinates(0,i) - norm[0]) < 1e-8) &&   //controllo se è già nel Cell0DsCoordinates
             (abs(mesh.Cell0DsCoordinates(1,i) - norm[1]) < 1e-8) &&
             (abs(mesh.Cell0DsCoordinates(2,i) - norm[2]) < 1e-8)) { return i;}
-    
+    }
     unsigned int id = mesh.NumCell0Ds++;
     mesh.Cell0DsId.push_back(id);   // Cell0DsID
     mesh.Cell0DsCoordinates.conservativeResize(3, id+1);   // Cell0DsCoordinates
@@ -250,7 +251,7 @@ unsigned int inserisci_vertice(array<double,3> coord,
     mesh.Cell0DsCoordinates(1,id) = norm[1];
     mesh.Cell0DsCoordinates(2,id) = norm[2];
     return id;
-    }
+    
 }
 
 /*-----------------------------------------------------------------------------------------------*/
@@ -293,6 +294,7 @@ void build_classe_2(unsigned int p,
 
     vector<array<double, 3>> vertici_iniziali;
     vector<array<int, 3>> facce_iniziali;
+    mesh.NumCell2Ds = 0;
 
     if (q == 5) build_ico(vertici_iniziali, facce_iniziali);
     else if (q == 4) build_octa(vertici_iniziali, facce_iniziali);
@@ -303,22 +305,25 @@ void build_classe_2(unsigned int p,
         const auto& B = vertici_iniziali[face[1]];
         const auto& C = vertici_iniziali[face[2]]; 
 
+        coordBari_id.clear();
+
         /// "GRIGLIA" COME NEL build_classe_1
         for (int i = 0; i <= (int)b; ++i) {
             for (int j = 0; j <= (int)(b - i); ++j) {
                 int k = b - i - j;   // regola base delle coord baricentrice
-                double x = (i * vertici_iniziali[0][0] + j * vertici_iniziali[1][0] + k * vertici_iniziali[2][0]) / double(b);   //combinaz convessa del triangolo iniziale
-                double y = (i * vertici_iniziali[0][1] + j * vertici_iniziali[1][1] + k * vertici_iniziali[2][1]) / double(b);
-                double z = (i * vertici_iniziali[0][2] + j * vertici_iniziali[1][2] + k * vertici_iniziali[2][2]) / double(b);
+                double x = (i * A[0] + j * B[0] + k * C[0]) / double(b);   //combinaz convessa del triangolo iniziale
+                double y = (i * A[1] + j * B[1] + k * C[1]) / double(b);
+                double z = (i * A[2] + j * B[2] + k * C[2]) / double(b);
                 array<double,3> P = {x,y,z};
-                coordBari_id[{i,j,k}] = inserisci_vertice(P, mesh);   // assegno un id alle coord
+                unsigned int id_vertice = inserisci_vertice(P, mesh);
+                coordBari_id[{i,j,k}] = id_vertice;  // assegno un id alle coord
             }
         }
 
-        vector<unsigned int> bari_id;   // insieme di id dei baricentri
 
         vector<tuple<unsigned int,unsigned int,unsigned int>> sotto_triangoli;   // vettore di sottotriangoli rappresentati dagli id
-        map<pair<unsigned int,unsigned int>, unsigned int> punti_medi;    // key: lato con estremi vertici -> id
+        map<pair<unsigned int,unsigned int>, int> mappa_id_archi;
+
 
         /// SOTTO-TRIANGOLI
         for (int i = 0; i < (int)b; ++i) {
@@ -335,6 +340,7 @@ void build_classe_2(unsigned int p,
             }
         }
 
+
         /// LATI CONDIVISI DA DUE SOTTOTRIANGOLI
         map<pair<unsigned int,unsigned int>, int> lati_condivisi;   // key: lato -> ripetizioni
 
@@ -347,6 +353,8 @@ void build_classe_2(unsigned int p,
                 lati_condivisi[{a, b}]++;
             }
         }
+
+        vector<unsigned int> bari_id(sotto_triangoli.size());   // insieme di id dei baricentri
 
         /// ANALISI DI OGNI SOTTO-TRIANGOLO
         for (auto& tri : sotto_triangoli) {   
@@ -362,9 +370,19 @@ void build_classe_2(unsigned int p,
             unsigned int G_id = inserisci_vertice(G, mesh);   // Cell0DsCoordinates e Cell0DsId del baricentro
             bari_id.push_back(G_id);
 
+            // LATI BARI-VERTICI_SOTTOTRIANGOLO
+            for (auto v : {i0, i1, i2}) {
+                pair<unsigned int,unsigned int> BV_id = {min(G_id,v), max(G_id,v)};
+                if (!archi_mappa.count(BV_id)) {
+                    unsigned int id = archi_mappa.size();
+                    archi_mappa[BV_id] = id;
+                    archi.insert(BV_id);
+                }
+            }
+
             /// LATI COI PUNTI_MEDI
             array<pair<unsigned int,unsigned int>,3> lati = {make_pair(i0,i1),make_pair(i1,i2),make_pair(i2,i0)};   //lati del sottotriangolo
-            vector<int> lati_id;   // id lati
+        
             for (auto [u,v] : lati) {
                 if (u > v) swap(u,v);   //  ordine (min, max)
 
@@ -399,16 +417,7 @@ void build_classe_2(unsigned int p,
                 }
             }
 
-            // LATI BARI-VERTICI_SOTTOTRIANGOLO
-            for (auto v : {i0, i1, i2}) {
-                pair<unsigned int,unsigned int> BV_id = {min(G_id,v), max(G_id,v)};
-                if (!archi_mappa.count(BV_id)) {
-                    unsigned int id = archi_mappa.size();
-                    archi_mappa[BV_id] = id;
-                    archi.insert(BV_id);
-                }
-            }
-        }
+        } 
 
         /// LATI BARI-BARI ADIACENTI
         for (size_t i = 0; i < sotto_triangoli.size(); ++i) {
@@ -420,63 +429,155 @@ void build_classe_2(unsigned int p,
                 if (vertici_condivisi.size() == 2) {   // allora c'è  un lato in comune
                     unsigned int a = bari_id[i];
                     unsigned int b = bari_id[j];
-                    pair<unsigned int,unsigned int> key = {min(a,b), max(a,b)};
-                    if (!archi_mappa.count(key)) {
+                    pair<unsigned int,unsigned int> BB_id = {min(a,b), max(a,b)};
+                    if (!archi_mappa.count(BB_id)) {
                         unsigned int id = archi_mappa.size();
-                        archi_mappa[key] = id;
-                        archi.insert(key);
-                    }
-                }
-            }
-        }
-
-        /// LATI NELLA MESH
-        mesh.Cell1DsExtrema.resize(2, archi.size());
-        map<pair<int,int>, int> mappa_id_archi;
-        mesh.NumCell1Ds = 0;   // NumCell1Ds
-        for (const auto& [a,b] : archi) {
-            mesh.Cell1DsId.push_back(mesh.NumCell1Ds);   // Cell1DsId
-            mesh.Cell1DsExtrema(0, mesh.NumCell1Ds) = a;   // Cell1DsExtrema
-            mesh.Cell1DsExtrema(1, mesh.NumCell1Ds) = b;
-            mappa_id_archi[make_pair(a,b)] = mesh.NumCell1Ds;
-            mesh.NumCell1Ds++;
-        }
-        
-        /// FACCE NELLA MESH
-        mesh.NumCell2Ds = 0;
-        for(const auto& [a,b] : archi) {
-            unsigned int u = a;
-            unsigned int v = b;
-
-            vector<pair<unsigned int, unsigned int>> lati_consecutivi;   // raccolta di lati che hanno come un estremo v
-            for(const auto& [c,d] : archi) {
-                if (c==v || d==v && c!=u) {
-                    lati_consecutivi.push_back(make_pair(c,d));
-
-                    for (const auto& [i,j] : lati_consecutivi) {
-                        if (i==u || j==u) { 
-                            vector<int> triangolo = {u,v,i,j};   // faccia
-                            sort(triangolo.begin(), triangolo.end());
-                            auto it = unique(triangolo.begin(), triangolo.end());   //individuo i vertici ripetuti
-                            triangolo.erase(it, triangolo.end());   // elimino i vertici ripetuti
-
-                            pair<int,int> lato1  = make_pair(triangolo[0], triangolo[1]) ;
-                            pair<int,int> lato2  = make_pair(triangolo[1], triangolo[2]) ;
-                            pair<int,int> lato3  = make_pair(triangolo[0], triangolo[2]) ;
-
-                            if (find(mesh.Cell2DsVertices.begin(), mesh.Cell2DsVertices.end(), triangolo)== mesh.Cell2DsVertices.end() ){
-                                mesh.Cell2DsId.push_back(mesh.NumCell2Ds);   // Cell2DsId
-                                mesh.Cell2DsVertices.push_back(triangolo);   // Cell2DsVertices
-                                mesh.Cell2DsEdges.push_back({mappa_id_archi[lato1],mappa_id_archi[lato2], mappa_id_archi[lato3]});   //Cell2DsEdges
-                                mesh.Cell2DsNumEdges.push_back(3);   // Cell2DsNumEdges
-                                mesh.NumCell2Ds++;
-                            }
-                        }
+                        archi_mappa[BB_id] = id;
+                        archi.insert(BB_id);
                     }
                 }
             }
         }
     }
+
+    /// LATI NELLA MESH
+    mesh.NumCell1Ds = (int)archi.size();   // NumCell1Ds
+    mesh.Cell1DsExtrema.resize(2, mesh.NumCell1Ds);
+    mesh.Cell1DsId.resize(mesh.NumCell1Ds);
+
+    map<pair<unsigned int,unsigned int>, int> mappa_id_archi;
+    int id = 0;
+    for (const auto& [a,b] : archi) {
+        mesh.Cell1DsId[id] = id;   // Cell1DsId
+        mesh.Cell1DsExtrema(0, id) = a;   // Cell1DsExtrema
+        mesh.Cell1DsExtrema(1, id) = b;
+        mappa_id_archi[make_pair(a,b)] = id;
+        mappa_id_archi[{a,b}] = id;
+        ++id;
+    }
+    
+    /// FACCE NELLA MESH
+    /*mesh.NumCell2Ds = 0;
+    for(const auto& [a,b] : archi) {
+        unsigned int u = a;
+        unsigned int v = b;
+
+        vector<pair<unsigned int, unsigned int>> lati_consecutivi;   // raccolta di lati che hanno come un estremo v
+        for(const auto& [c,d] : archi) {
+            if (c==v || d==v && c!=u) {
+                lati_consecutivi.push_back(make_pair(c,d));
+
+                for (const auto& [i,j] : lati_consecutivi) {
+                    if (i==u || j==u) { 
+                        vector<int> triangolo = {(int)u, (int)v, (int)i, (int)j};   // faccia
+                        sort(triangolo.begin(), triangolo.end());
+                        auto it = unique(triangolo.begin(), triangolo.end());   //individuo i vertici ripetuti
+                        triangolo.erase(it, triangolo.end());   // elimino i vertici ripetuti
+
+                        pair<unsigned int,unsigned int> lato1  = make_pair(triangolo[0], triangolo[1]) ;
+                        pair<unsigned int, unsigned int> lato2  = make_pair(triangolo[1], triangolo[2]) ;
+                        pair<unsigned int, unsigned int> lato3  = make_pair(triangolo[0], triangolo[2]) ;
+
+                        if (find(mesh.Cell2DsVertices.begin(), mesh.Cell2DsVertices.end(), triangolo)== mesh.Cell2DsVertices.end() ){
+                            mesh.Cell2DsId.push_back(mesh.NumCell2Ds);   // Cell2DsId
+                            mesh.Cell2DsVertices.push_back(triangolo);   // Cell2DsVertices
+                            mesh.Cell2DsEdges.push_back({mappa_id_archi[lato1],mappa_id_archi[lato2], mappa_id_archi[lato3]});   //Cell2DsEdges
+                            mesh.Cell2DsNumEdges.push_back(3);   // Cell2DsNumEdges
+                            mesh.NumCell2Ds++;
+                        }
+                    }
+                }
+            }
+        }
+    }*/
+
+    
+    mesh.Cell2DsId.clear();
+    mesh.Cell2DsVertices.clear();
+    mesh.Cell2DsEdges.clear();
+    mesh.Cell2DsNumEdges.clear();
+
+    unordered_set<string> facce_codificate;
+
+    // Ricostruzione mappa adiacenze
+    unordered_map<unsigned int, unordered_set<unsigned int>> adiacenze;
+    for (const auto& [u, v] : archi) {
+        adiacenze[u].insert(v);
+        adiacenze[v].insert(u);
+    }
+
+    // Costruzione delle facce triangolari
+    /*for (const auto& [u, vicini_u] : adiacenze) {
+        for (unsigned int v : vicini_u) {
+            if (v <= u) continue;
+            for (unsigned int w : adiacenze[v]) {
+                if (w <= v || !adiacenze[u].count(w)) continue;
+
+                // Triangolo valido {u, v, w}
+                vector<int> vertici = { (int)u, (int)v, (int)w };
+                sort(vertici.begin(), vertici.end());
+                if (find(mesh.Cell2DsVertices.begin(), mesh.Cell2DsVertices.end(), vertici) != mesh.Cell2DsVertices.end())
+                    continue;
+
+                vector<int> edges = {
+                    mappa_id_archi[{min(u,v), max(u,v)}],
+                    mappa_id_archi[{min(v,w), max(v,w)}],
+                    mappa_id_archi[{min(w,u), max(w,u)}]
+                };
+
+                mesh.Cell2DsId.push_back(mesh.NumCell2Ds);
+                mesh.Cell2DsVertices.push_back(vertici);
+                mesh.Cell2DsEdges.push_back(edges);
+                mesh.Cell2DsNumEdges.push_back(3);
+                mesh.NumCell2Ds++;
+            }
+        }
+    }*/
+
+    for (const auto& [u, vicini_u] : adiacenze) {
+        for (unsigned int v : vicini_u) {
+            if (v <= u) continue;
+            for (unsigned int w : adiacenze[v]) {
+                if (w <= v || !adiacenze[u].count(w)) continue;
+
+                // Triangolo potenziale con vertici u,v,w
+                // Determina ordine ciclico corretto: u → v → w → u
+                vector<int> vertici = { (int)u, (int)v, (int)w };
+
+                // Check se faccia già inserita (indipendentemente da ordine ciclico)
+                vector<int> vertici_ordinati = vertici;
+                sort(vertici_ordinati.begin(), vertici_ordinati.end());
+                string codice = to_string(vertici_ordinati[0]) + "," + to_string(vertici_ordinati[1]) + "," + to_string(vertici_ordinati[2]);
+
+                if (facce_codificate.count(codice)!=0) continue;
+                    facce_codificate.insert(codice);
+
+                // Costruzione degli archi nel giusto ordine
+                vector<pair<int, int>> lati = {
+                    {min(vertici[0], vertici[1]), max(vertici[0], vertici[1])},
+                    {min(vertici[1], vertici[2]), max(vertici[1], vertici[2])},
+                    {min(vertici[2], vertici[0]), max(vertici[2], vertici[0])}
+                };
+
+                vector<int> edges;
+                bool arco_mancante = false;
+                for (auto& lato : lati) {
+                    if (archi_mappa.count(lato)) {edges.push_back(archi_mappa[lato]);}
+                    else {
+                        arco_mancante = true;
+                        break;
+                    }
+                }
+                if (arco_mancante) continue;
+
+                mesh.Cell2DsId.push_back(mesh.NumCell2Ds++);
+                mesh.Cell2DsVertices.push_back(vertici);  // ordine ciclico coerente
+                mesh.Cell2DsEdges.push_back(edges);       // ordine coerente con vertici
+                mesh.Cell2DsNumEdges.push_back(3);
+            }
+        }
+    }
+
 
 	// CELL3D (UNICA)
     mesh.NumCell3Ds = 1;
