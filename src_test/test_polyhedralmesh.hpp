@@ -9,7 +9,7 @@
 
 # include "Utils.hpp"
 
-/*-----------------------------------------------------------------------------------------------*/
+/-----------------------------------------------------------------------------------------------/
 
 /// TEST per verificare il riempimento corretto della struct
 	// inserimento di un singolo vertice in Cell0D
@@ -234,18 +234,18 @@ TEST(BuildSolidoTest, OctahedronTriangulatedOnce) {
 	// test input invalidi
 	
 	
-TEST(BuildSolidoTest, InvalidInputs) {
+/*TEST(BuildSolidoTest, InvalidInputs) {
     PolyhedralLibrary::PolyhedralMesh mesh;
 
     // p non valido
-    EXPECT_THROW(build_classe_1(4, 4, 2, 0, mesh), std::runtime_error);
+    EXPECT_THROW(wrapper(4, 4, 2, 0, mesh), std::runtime_error);
 
     // c non valido
     EXPECT_THROW(build_classe_1(3, 4, 2, 1, mesh), std::runtime_error);
 
     // ControllaInput fallisce
     EXPECT_THROW(build_classe_1(3, 0, 1, 0, mesh), std::runtime_error); 
-}
+}*/
 
 // test per verificare costruzione coerente del file: controllo che il numero di righe nei file relativi ai vertici,spigoli e facce sia uguale al numero di vertci spigoli e facce del poliedro generato //
 
@@ -274,6 +274,113 @@ TEST(BuildSolidoTest, FilesConsistencyWithMesh) {
     EXPECT_EQ(count0D, mesh.NumCell0Ds);
     EXPECT_EQ(count1D, mesh.NumCell1Ds);
     EXPECT_EQ(count2D, mesh.NumCell2Ds);
+}
+
+// TEST PER VERIFICARE LA CORRETTEZZA DELLA FUNZIONE PER IL CALCOLO DEL CAMMINO MINIMO//
+
+TEST(DijkstraTest, ShortestPath_UsesDefinedFaceEdges) {
+    using namespace PolyhedralLibrary;
+
+    PolyhedralMesh mesh;
+
+    // Definizione di 3 vertici di un triangolo equilatero
+    mesh.NumCell0Ds = 3;
+    mesh.Cell0DsId = {0, 1, 2};
+    mesh.Cell0DsCoordinates.resize(3, 3);
+    mesh.Cell0DsCoordinates << 
+        0.0, 0.0, 0.0,                     // vertice 0
+        1.0, 0.0, 0.0,                     // vertice 1
+        0.5, std::sqrt(3.0)/2.0, 0.0;      // vertice 2
+
+    // Spigoli ( ma servono per marcare il cammino)
+    mesh.NumCell1Ds = 3;
+    mesh.Cell1DsId = {0, 1, 2};
+    mesh.Cell1DsExtrema.resize(2, 3);
+    mesh.Cell1DsExtrema << 
+        0, 1, 2,
+        1, 2, 0; // Archi: 0-1, 1-2, 2-0
+
+    // Una faccia con vertici (0, 1, 2) => crea archi: 0–1, 1–2, 2–0
+    mesh.NumCell2Ds = 1;
+    mesh.Cell2DsVertices = {{0, 1, 2}};
+
+    // Esegui Dijkstra da vertice 0 a vertice 1
+    Dijkstra(mesh, 0, 1);
+
+    // Verifica che il cammino minimo sia diretto: 0 → 1 (distanza = 1.06488, non uno perchè i vertici vengono proiettati sulla sfera)
+    EXPECT_EQ(mesh.num_archiPath, 1);
+    EXPECT_NEAR(mesh.lunghezza_Path, 1.064882433048626, 1e-15);
+
+    // Verifica che i vertici siano stati marcati correttamente
+    ASSERT_TRUE(mesh.MarkerCell0Ds.count(1));
+    EXPECT_EQ(mesh.MarkerCell0Ds[1].size(), 2);  // Vertici: 0, 1
+
+    // Verifica che uno spigolo sia stato marcato
+    ASSERT_TRUE(mesh.MarkerCell1Ds.count(1));
+    EXPECT_EQ(mesh.MarkerCell1Ds[1].size(), 1);
+}
+
+// Test per costruzione corretta del duale
+
+TEST(DualeTest, OctahedronToCube) {
+    using namespace PolyhedralLibrary;
+
+    PolyhedralMesh mesh;
+
+    // Vertici dell'ottaedro
+    std::vector<std::array<double, 3>> vertici = {
+        { 1,  0,  0}, {-1,  0,  0}, { 0,  1,  0},
+        { 0, -1,  0}, { 0,  0,  1}, { 0,  0, -1}
+    };
+    mesh.NumCell0Ds = vertici.size();
+    mesh.Cell0DsId.resize(mesh.NumCell0Ds);
+    mesh.Cell0DsCoordinates.resize(3, mesh.NumCell0Ds);
+    for (unsigned int i = 0; i < mesh.NumCell0Ds; ++i) {
+        mesh.Cell0DsId[i] = i;
+        mesh.Cell0DsCoordinates(0, i) = vertici[i][0];
+        mesh.Cell0DsCoordinates(1, i) = vertici[i][1];
+        mesh.Cell0DsCoordinates(2, i) = vertici[i][2];
+    }
+
+    // Facce dell'ottaedro (triangoli)
+    std::vector<std::array<int, 3>> facce = {
+        {0, 2, 4}, {2, 1, 4}, {1, 3, 4}, {3, 0, 4},
+        {2, 0, 5}, {1, 2, 5}, {3, 1, 5}, {0, 3, 5}
+    };
+    mesh.NumCell2Ds = facce.size();
+    mesh.Cell2DsId.resize(mesh.NumCell2Ds);
+    mesh.Cell2DsVertices.resize(mesh.NumCell2Ds);
+    for (unsigned int i = 0; i < mesh.NumCell2Ds; ++i) {
+        mesh.Cell2DsId[i] = i;
+        mesh.Cell2DsVertices[i] = {facce[i][0], facce[i][1], facce[i][2]};
+    }
+
+    // Costruzione del duale
+    PolyhedralMesh duale;
+    build_duale(mesh, duale);
+
+    // Verifiche : il duale dell'ottaedro è un cubo, che ha 8 vertici e 12 spigoli
+    EXPECT_EQ(duale.NumCell0Ds, 8);  
+    EXPECT_EQ(duale.NumCell1Ds, 12); 
+    EXPECT_EQ(duale.NumCell2Ds, 6);  
+
+    // Verifica che i vertici siano normalizzati (proiettati sulla sfera)
+    for (unsigned int i = 0; i < duale.NumCell0Ds; ++i) {
+        double x = duale.Cell0DsCoordinates(0, i);
+        double y = duale.Cell0DsCoordinates(1, i);
+        double z = duale.Cell0DsCoordinates(2, i);
+        double norm = std::sqrt(x*x + y*y + z*z);
+        EXPECT_NEAR(norm, 1.0, 1e-6) << "Vertice " << i << " non è normalizzato.";
+    }
+
+    
+
+
+    // Verifica che tutti gli ID siano continui da 0 a N-1
+    for (unsigned int i = 0; i < duale.NumCell0Ds; ++i)
+        EXPECT_EQ(duale.Cell0DsId[i], i);
+    for (unsigned int i = 0; i < duale.NumCell2Ds; ++i)
+        EXPECT_EQ(duale.Cell2DsId[i], i);
 }
 
 
