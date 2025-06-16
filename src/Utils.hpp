@@ -22,9 +22,6 @@ array<double,3> PuntoMedio(const array<double,3>& A, const array<double,3>& B);
 
 array<double,3> Baricentro(const array<double,3>& A, const array<double,3>& B, const array<double,3>& C);
 
-unsigned int inserisci_vertice(array<double,3> coord, 
-                               PolyhedralMesh& mesh);
-
 unsigned int salva_vertice_norm(const array<double,3>& coord,
                            map<array<double,3>, unsigned int>& map0D,
                            PolyhedralMesh& mesh,
