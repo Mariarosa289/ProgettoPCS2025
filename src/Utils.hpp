@@ -18,6 +18,11 @@ void build_classe_1(unsigned int p, unsigned int q, unsigned int b, unsigned int
 
 void build_classe_2(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolyhedralMesh& mesh);
 
+pair<int, bool> get_or_add_edge(
+    unsigned int a, unsigned int b,
+    map<pair<unsigned int, unsigned int>, unsigned int>& map1D,
+    PolyhedralMesh& mesh);
+
 array<double,3> PuntoMedio(const array<double,3>& A, const array<double,3>& B);
 
 array<double,3> Baricentro(const array<double,3>& A, const array<double,3>& B, const array<double,3>& C);

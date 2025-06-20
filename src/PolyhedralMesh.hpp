@@ -40,6 +40,9 @@ struct PolyhedralMesh
 	// === Cammino Minimo Path ===
   unsigned int num_archiPath = 0;
   double lunghezza_Path = 0.0;
+
+
+
 };
 
 } 
