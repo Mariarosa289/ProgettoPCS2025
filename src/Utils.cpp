@@ -269,6 +269,8 @@ void build_classe_1(unsigned int p, unsigned int q, unsigned int b, unsigned int
 }
 
 
+
+
 /*-----------------------------------------------------------------------------------------------*/
 /*
 // Funzione : Baricentro : calcola in coordinate il baricentro di un triangolo
