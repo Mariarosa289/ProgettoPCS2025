@@ -4,45 +4,41 @@
 #include <map>
 #include <list>
 #include <Eigen/Dense>
-#include <queue>
-#include <list>
+// #include <queue>  TOGLIERE
 
-namespace PolyhedralLibrary {
+/// Costruzione libreria PloyhedralLibrary
+namespace PolyhedralLibrary {   
+  struct PolyhedralMesh
+  {
+    /// Cell0D : vertici
+    unsigned int Cell0D_num = 0;   // numero di Cell0D
+    std::vector<unsigned int> Cell0D_id = {};   // vettore degli id di Cell0D : dim 1 x Cell0D_num
+    Eigen::MatrixXd Cell0D_coordinate = {};   // matrice di coordinate di Cell0Dshape : X x Cell0D_num (x,y,z)
+    std::map<unsigned int, std::list<unsigned int>> Cell0D_marker = {};   // mappa<marker, lista dei punti di quel marker>
 
-struct PolyhedralMesh
-{
-    // === Cell0D ===
-    unsigned int NumCell0Ds = 0; ///< number of Cell0D
-    std::vector<unsigned int> Cell0DsId = {}; ///< Cell0D ids, size NumCell0Ds
-    Eigen::MatrixXd Cell0DsCoordinates = {}; ///< Cell0D coordinates, shape: X x NumCell0Ds (x,y,z)
-    std::map<unsigned int, std::list<unsigned int>> MarkerCell0Ds = {}; ///< Cell0D markers, e.g., ShortestPath marker
+    /// Cell1D : segmenti
+    unsigned int Cell1D_num = 0;   // numero di Cell1D
+    std::vector<unsigned int> Cell1D_id = {};   // vettore degli id di Cell1D : dim 1 x Cell1D_num
+    Eigen::MatrixXi Cell1D_estremi = {};   // matrice degli id (in int) dei punti di estremi : dim 2 x Cell1D_num
+    std::map<unsigned int, std::list<unsigned int>> Cell1D_marker = {};   // mappa<marker, lista dei punti di quel marker>
 
-    // === Cell1D ===
-    unsigned int NumCell1Ds = 0; ///< number of Cell1D
-    std::vector<unsigned int> Cell1DsId = {}; ///< Cell1D ids, size NumCell1Ds
-    Eigen::MatrixXi Cell1DsExtrema = {}; ///< Cell1D extrema (from, to), shape: X x NumCell1Ds
-    std::map<unsigned int, std::list<unsigned int>> MarkerCell1Ds = {}; ///< Cell1D markers, e.g., ShortestPath marker
-
-    // === Cell2D ===
-    unsigned int NumCell2Ds = 0; ///< number of Cell2D
-    std::vector<unsigned int> Cell2DsId = {}; ///< Cell2D ids, size NumCell2Ds
-    std::vector<std::vector<int>> Cell2DsVertices = {}; ///< Cell2D vertex ids, variable size per cell
-    std::vector<int> Cell2DsNumEdges = {}; ///< Number of edges per Cell2D, size NumCell2Ds
-    std::vector<std::vector<int>> Cell2DsEdges = {}; ///< Cell2D edge ids (Cell1D), variable size per cell
+    /// Cell2D : facce
+    unsigned int Cell2D_num = 0;   // numero di Cell2D
+    std::vector<unsigned int> Cell2D_id = {};   // vettore degli id delle facce : dim 1 x Cell2D_num
+    std::vector<std::vector<int>> Cell2D_vertici = {};   //  vettore di vettori degli id dei vertici di ciascuna faccia : dim 1 x Cell2D_num
+    std::vector<int> Cell2D_numLati = {};   // vettore dei numeri di lati di ogni faccia : dim 1 x Cell2D_num
+    std::vector<std::vector<int>> Cell2D_lati = {};   // vettore di vettori dei lati che compongono ciascuna faccia : dim 1 x CEll2D_num
     
-    // === Cell3D ===
-    unsigned int NumCell3Ds = 0;
-    std::vector<unsigned int> Cell3DsId = {};
-    std::vector<std::vector<int>> Cell3DsVertices = {};
-    std::vector<std::vector<int>> Cell3DsEdges = {};
-    std::vector<std::vector<int>> Cell3DsFaces = {};
+    /// Cell3D : solidi
+    unsigned int Cell3D_num = 0;   // numero di Cell3D
+    std::vector<unsigned int> Cell3D_id = {};   // vettore degli id dei solidi : dim 1 x Cell3D_num
+    std::vector<std::vector<int>> Cell3D_vertici = {};   //  vettore di vettori degli id dei vertici di ciascuna solido : dim 1 x Cell3D_num
+    std::vector<std::vector<int>> Cell3D_lati = {};   // vettore di vettori dei lati che compongono ciascun solido : dim 1 x Cell3D_num
+    std::vector<std::vector<int>> Cell3D_facce = {};   // vettore di vettori di facce che compongono ciascun solido : dim 1 x Cell3D_num
     
-	// === Cammino Minimo Path ===
+	/* === Cammino Minimo Path === TOGLIERE
   unsigned int num_archiPath = 0;
   double lunghezza_Path = 0.0;
-
-
-
-};
-
+  */
+  };
 } 

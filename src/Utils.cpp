@@ -21,22 +21,30 @@ using namespace std;
 using namespace Eigen;
 
 /*-----------------------------------------------------------------------------------------------*/
-
 /*
 Funzione per normalizzare le coordinate di un punto, ovvero la proiezione dei punti sulla sfera
-- function: Normalizza
-- input 1: array con le 3 coordinate non normalizzate del punto p
-- return: array con le 3 coordinate normalizzate del punto p
+- function : normalizza
+- input 1 : array con le 3 coordinate non normalizzate del punto p
+- return : array con le 3 coordinate normalizzate del punto p
 */
 
-array<double, 3> Normalizza(const array<double, 3>& p) {
-    double norm = sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]);   // calcolo la norma per normalizzare
+array<double, 3> normalizza(const array<double, 3>& p) 
+{
+    double norm = sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]);   // calcolo la norma del punto P
     return {p[0]/norm, p[1]/norm, p[2]/norm};   
 }
 
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione per arrotondare il punto, scegliendo un errore eps = 1e-6
+- function : arrotonda_punto
+- input 1 : array con le 3 coordinate del punto p
+- input 2 : errore eps fissato a 1e-6
+- return : array con le 3 coordinate arrotondate del punto p
+*/
 
-array<double, 3> round_point(const array<double, 3>& p, double eps = 1e-6) {
+array<double, 3> arrotonda_punto(const array<double, 3>& p, double eps = 1e-6) 
+{
     return {
         round(p[0] / eps) * eps,
         round(p[1] / eps) * eps,
@@ -45,8 +53,16 @@ array<double, 3> round_point(const array<double, 3>& p, double eps = 1e-6) {
 }
 
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che raccoglie i vertici e le facce iniziali di un icosaedro regolare centrato in origine e con i vertici a stessa distanza da esso
+- function : build_ico
+- input 1 : vector vuoto dei vertici in coordinate
+- input 2 : vector vuoto delle facce in id dei loro vertici
+- return : i vector di vertici e facce popolati
+*/
 
-void build_ico(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) {
+void build_ico(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) 
+{
     const double phi = (1.0 + sqrt(5.0)) / 2.0;
     vertici = {
         {-1,  phi,  0}, { 1,  phi,  0}, {-1, -phi,  0}, { 1, -phi,  0},
@@ -62,8 +78,16 @@ void build_ico(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) 
 }
 
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che raccoglie i vertici e le facce iniziali di un ottaedro regolare centrato in origine e con i vertici a stessa distanza da esso
+- function : build_octa
+- input 1 : vector vuoto dei vertici in coordinate
+- input 2 : vector vuoto delle facce in id dei loro vertici
+- return : i vector di vertici e facce popolati
+*/
 
-void build_octa(vector<array<double, 3>>& vertici,vector<array<int, 3>>& facce) {
+void build_octa(vector<array<double, 3>>& vertici,vector<array<int, 3>>& facce) 
+{
     vertici = {
         { 1,  0,  0}, {-1,  0,  0}, { 0,  1,  0},
         { 0, -1,  0}, { 0,  0,  1}, { 0,  0, -1}
@@ -75,8 +99,16 @@ void build_octa(vector<array<double, 3>>& vertici,vector<array<int, 3>>& facce) 
 }
 
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che raccoglie i vertici e le facce iniziali di un tetraedro regolare centrato in origine e con i vertici a stessa distanza da esso
+- function : build_tetra
+- input 1 : vector vuoto dei vertici in coordinate
+- input 2 : vector vuoto delle facce in id dei loro vertici
+- return : i vector di vertici e facce popolati
+*/
 
-void build_tetra(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) {
+void build_tetra(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce) 
+{
     vertici = {
         {  1,  1,  1 },
         { -1, -1,  1 },
@@ -89,25 +121,41 @@ void build_tetra(vector<array<double, 3>>& vertici, vector<array<int, 3>>& facce
 }
 
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che memorizza il vertice normalizzato
+- function : salva_vertice_norm
+- input 1 : array con le coordinate del vertice p 
+- input 2 : mappa map0D in cui salvare le coordinate normalizzate con l'id del vertice
+- input 3 : mesh da popolare
+- return : vid aumentato di uno 
+*/
 
-unsigned int salva_vertice_norm(const array<double,3>& coord,
-                           map<array<double,3>, unsigned int>& map0D,
-                           PolyhedralMesh& mesh) {
-    static unsigned int vid = 0;
-    auto norm = Normalizza(coord);
-    auto rounded = round_point(norm);
-    auto it = map0D.find(rounded);
-    if (it != map0D.end()) return it->second;
-    map0D[rounded] = vid;
-    mesh.Cell0DsId.push_back(vid);
-    mesh.Cell0DsCoordinates.conservativeResize(3, vid + 1);
+unsigned int salva_vertice_norm(const array<double,3>& coordinate,
+                                map<array<double,3>, unsigned int>& map0D,
+                                PolyhedralMesh& mesh) 
+{
+    static unsigned int vid = 0;   // static: per poter aumentare il vid ad ogni chiamata
+
+    auto vertice_norma = normalizza(coordinate);   // normalizza vertice
+    auto vertice_arrotondato = arrotonda_punto(vertice_norma);   // arrotonda vertice
+
+    // vediamo se il vertice è già nella map0D
+    auto it = map0D.find(vertice_arrotondato);
+    if (it != map0D.end()) return it -> second;  
+
+    // vertice mancante nella map0D => aggiungere nella map0D e nella mesh
+    map0D[vertice_arrotondato] = vid;  
+    mesh.Cell0D_id.push_back(vid);
+    mesh.Cell0D_coordinate.conservativeResize(3, vid + 1);   // conservativeResize : resize mantendendo i dati già presenti
     for (int i = 0; i < 3; ++i)
-        mesh.Cell0DsCoordinates(i, vid) = norm[i];
+        mesh.Cell0D_coordinate(i, vid) = vertice_norma[i];
+
     return vid++;
 }
 
-/*-----------------------------------------------------------------------------------------------*/
 
+/*-----------------------------------------------------------------------------------------------*/
+// DA RIVEDERE
 pair<int, bool> get_or_add_edge(
     unsigned int a, unsigned int b,
     map<pair<unsigned int, unsigned int>, unsigned int>& map1D,
@@ -117,47 +165,72 @@ pair<int, bool> get_or_add_edge(
 
     if (map1D.count(key)) {
         int eid = map1D[key];
-        bool actual_orientation = (a == mesh.Cell1DsExtrema(0, eid));
+        bool actual_orientation = (a == mesh.Cell1D_estremi(0, eid));
         return {eid, actual_orientation};
     }
 
     // Aggiunta nuovo lato
-    int eid = mesh.Cell1DsId.size();
+    int eid = mesh.Cell1D_id.size();
     map1D[key] = eid;
-    mesh.Cell1DsId.push_back(eid);
-    mesh.Cell1DsExtrema.conservativeResize(2, eid + 1);
-    mesh.Cell1DsExtrema(0, eid) = key.first;
-    mesh.Cell1DsExtrema(1, eid) = key.second;
+    mesh.Cell1D_id.push_back(eid);
+    mesh.Cell1D_estremi.conservativeResize(2, eid + 1);
+    mesh.Cell1D_estremi(0, eid) = key.first;
+    mesh.Cell1D_estremi(1, eid) = key.second;
 
     return {eid, orientation};
 }
 
+
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che popola il mesh dopo aver applicato la triangolazione 1
+- function : build_classe_1
+- input 1 : p : numero di vertici che si osserva guardando ciascuna faccia del poligono regolare iniziale
+- input 2 : q : valenza (numero di facce adiacenti a un vertice del poligono regolare iniziale)
+- input 3 : b : numero di divisione di ogni lato di una faccia base
+- input 4 : c : classe
+- input 5 : mesh da popolare
+- return : popolamento del mesh 
+*/
 
-void build_classe_1(unsigned int p, unsigned int q, unsigned int b, unsigned int c, PolyhedralMesh& mesh) {
-    using namespace std;
-
+void build_classe_1(unsigned int p, 
+                    unsigned int q, 
+                    unsigned int b, 
+                    unsigned int c, 
+                    PolyhedralMesh& mesh) 
+{
+    /// Vertici e facce del poligono regolare di base
     vector<array<double, 3>> vertici_iniziali;
     vector<array<int, 3>> facce_iniziali;
 
-    if (q == 5) build_ico(vertici_iniziali, facce_iniziali);
-    else if (q == 4) build_octa(vertici_iniziali, facce_iniziali);
-    else build_tetra(vertici_iniziali, facce_iniziali);
+    switch (q) {
+        case 5:
+            build_ico(vertici_iniziali, facce_iniziali);
+            break;
+        case 4:
+            build_octa(vertici_iniziali, facce_iniziali);
+            break;
+        case 3:
+            build_tetra(vertici_iniziali, facce_iniziali);
+            break;
+    }
 
-    map<array<double, 3>, unsigned int> map0D;
-    map<pair<unsigned int, unsigned int>, unsigned int> map1D;
-    unsigned int fid = 0;
+    map<array<double, 3>, unsigned int> map0D;   // raccolta univoca dei vertici. key = coordinate del vertice -> id del vertice
+    map<pair<unsigned int, unsigned int>, unsigned int> map1D;   // raccolta univoca dei lati. key = id dei vertici estremi -> id del lato
+    unsigned int fid = 0;   // indice di faccia
 
-    for (const auto& face : facce_iniziali) {
-        const auto& A = vertici_iniziali[face[0]];
-        const auto& B = vertici_iniziali[face[1]];
-        const auto& C = vertici_iniziali[face[2]];
+    /// Triangolazione 1 per ogni faccia base + popolamento del mesh
+    for (const auto& faccia : facce_iniziali) {
+        const auto& A = vertici_iniziali[faccia[0]];
+        const auto& B = vertici_iniziali[faccia[1]];
+        const auto& C = vertici_iniziali[faccia[2]];
 
-        vector<vector<unsigned int>> griglia(b + 1);
+        /// popolamento mesh di vertici della triangolazione
+        vector<vector<unsigned int>> griglia(b + 1);   // griglia triangolare
         for (unsigned int i = 0; i <= b; ++i) {
-            griglia[i].resize(i + 1);
-            for (unsigned int j = 0; j <= i; ++j) {
-                double u = 1.0 - static_cast<double>(i) / b;
+            griglia[i].resize(i + 1);   
+            for (unsigned int j = 0; j <= i; ++j) {   // ATTENZIONE: FORMULA?
+                double u = 1.0 - static_cast<double>(i) / b;   // static_cast per conversione sicura
                 double v = static_cast<double>(i - j) / b;
                 double w = static_cast<double>(j) / b;
                 array<double, 3> P = {
@@ -169,134 +242,137 @@ void build_classe_1(unsigned int p, unsigned int q, unsigned int b, unsigned int
             }
         }
 
+        /// popolamento del resto del mesh
         for (unsigned int i = 0; i < b; ++i) {
             for (unsigned int j = 0; j < i + 1; ++j) {
                 unsigned int v1 = griglia[i][j];
-                unsigned int v2 = griglia[i + 1][j];
-                unsigned int v3 = griglia[i + 1][j + 1];
+                unsigned int v2 = griglia[i+1][j];
+                unsigned int v3 = griglia[i+1][j + 1];
 
-                mesh.Cell2DsId.push_back(fid++);
-                mesh.Cell2DsVertices.push_back({(int)v1, (int)v2, (int)v3});
+                mesh.Cell2D_id.push_back(fid++);   // popolamento Cell2D_id
+                mesh.Cell2D_vertici.push_back({(int)v1, (int)v2, (int)v3});   // popolamento Cell2D_vertici
 
-                vector<int> edge_ids;
+                vector<int> lati_diFaccia;   // raccoglie i lati della faccia
 
                 for (int k = 0; k < 3; ++k) {
-                    unsigned int a = mesh.Cell2DsVertices.back()[k];
-                    unsigned int b = mesh.Cell2DsVertices.back()[(k + 1) % 3];
+                    unsigned int a = mesh.Cell2D_vertici.back()[k];
+                    unsigned int b = mesh.Cell2D_vertici.back()[(k + 1) % 3];
                     auto lato = make_pair(a, b);
                     auto lato_inverso = make_pair(b, a);
                     
                     if (map1D.count(lato) == 0) {
-                        if (map1D.count(lato_inverso) == 0) {   // se il lato, nè il suo inverso, è presente -> ce lo aggiungo
-                            map1D[lato] = mesh.Cell1DsId.size();
-                            mesh.Cell1DsId.push_back(map1D[lato]);
-                            mesh.Cell1DsExtrema.conservativeResize(2, map1D[lato] + 1);
-                            mesh.Cell1DsExtrema(0, map1D[lato]) = lato.first;
-                            mesh.Cell1DsExtrema(1, map1D[lato]) = lato.second; 
-                            edge_ids.push_back(map1D[lato]);
+                        if (map1D.count(lato_inverso) == 0) {   // lato e lato_inverso non presenti -> ce lo aggiungo
+                            map1D[lato] = mesh.Cell1D_id.size();
+                            mesh.Cell1D_id.push_back(map1D[lato]);   // popolamento Cell1D_id
+                            mesh.Cell1D_estremi.conservativeResize(2, map1D[lato] + 1);   // popolamento Cell1D_estremi
+                            mesh.Cell1D_estremi(0, map1D[lato]) = lato.first;
+                            mesh.Cell1D_estremi(1, map1D[lato]) = lato.second; 
+                            lati_diFaccia.push_back(map1D[lato]);
                         } else if (map1D.count(lato_inverso) != 0) {
-                            edge_ids.push_back(map1D[lato_inverso]);
+                            lat_id.push_back(map1D[lato_inverso]);
                         }
                     } else if(map1D.count(lato) != 0) {
-                        edge_ids.push_back(map1D[lato]);
+                        lati_diFaccia.push_back(map1D[lato]);
                     }
                 }
 
-                mesh.Cell2DsEdges.push_back(edge_ids);
-                mesh.Cell2DsNumEdges.push_back(3);
+                mesh.Cell2D_lati.push_back(lati_diFaccia);   // popolamento Cell2D_lati
+                mesh.Cell2D_numLati.push_back(lati_diFaccia.size());   //popolamento Cell2D_numLati
 
-                if (j < i) {
-                    unsigned int v4 = griglia[i][j + 1];
-                    mesh.Cell2DsId.push_back(fid++);
-                    mesh.Cell2DsVertices.push_back({(int)v1, (int)v3, (int)v4});
+                /// stesso popolamento, ma nel caso j < 1
+                if (j < i) {   //ATTENZIONE: che dice la condizione?
+                    unsigned int v4 = griglia[i][j+1];
+                    mesh.Cell2D_id.push_back(fid++);  
+                    mesh.Cell2D_vertici.push_back({(int)v1, (int)v3, (int)v4});  
 
-                    vector<int> edge_ids2;
+                    vector<int> lati_diFaccia_2;
 
                     for (int k = 0; k < 3; ++k) {
-                    unsigned int a = mesh.Cell2DsVertices.back()[k];
-                    unsigned int b = mesh.Cell2DsVertices.back()[(k + 1) % 3];
+                    unsigned int a = mesh.Cell2D_vertici.back()[k];
+                    unsigned int b = mesh.Cell2D_vertici.back()[(k + 1) % 3];
                     auto lato = make_pair(a, b);
                     auto lato_inverso = make_pair(b, a);
                     
                     if (map1D.count(lato) == 0) {
-                        if (map1D.count(lato_inverso) == 0) {   // se il lato, nè il suo inverso, è presente -> ce lo aggiungo
-                            map1D[lato] = mesh.Cell1DsId.size();
-                            mesh.Cell1DsId.push_back(map1D[lato]);
-                            mesh.Cell1DsExtrema.conservativeResize(2, map1D[lato] + 1);
-                            mesh.Cell1DsExtrema(0, map1D[lato]) = lato.first;
-                            mesh.Cell1DsExtrema(1, map1D[lato]) = lato.second;
-                            edge_ids2.push_back(map1D[lato]);
+                        if (map1D.count(lato_inverso) == 0) {   
+                            map1D[lato] = mesh.Cell1D_id.size();
+                            mesh.Cell1D_id.push_back(map1D[lato]);
+                            mesh.Cell1D_estremi.conservativeResize(2, map1D[lato] + 1);
+                            mesh.Cell1D_estremi(0, map1D[lato]) = lato.first;
+                            mesh.Cell1D_estremi(1, map1D[lato]) = lato.second;
+                            lati_diFaccia_2.push_back(map1D[lato]);
                         } else if (map1D.count(lato_inverso) != 0) {
-                            edge_ids2.push_back(map1D[lato_inverso]);
+                            lati_diFaccia_2.push_back(map1D[lato_inverso]);
                         }
                     } else if(map1D.count(lato) != 0) {
-                        edge_ids2.push_back(map1D[lato]);
+                        lati_diFaccia_2.push_back(map1D[lato]);
                     }
                 }
 
-                mesh.Cell2DsEdges.push_back(edge_ids2);
-                mesh.Cell2DsNumEdges.push_back(3);
+                mesh.Cell2D_lati.push_back(lati_diFaccia_2);
+                mesh.Cell2D_numLati.push_back(3);
                 }
             }
         }
     }
 
-    // Post-processing: Cell3D
-    mesh.NumCell0Ds = mesh.Cell0DsId.size();
-    mesh.NumCell1Ds = mesh.Cell1DsId.size();
-    mesh.NumCell2Ds = mesh.Cell2DsId.size();
+    mesh.Cell0D_num = mesh.Cell0D_id.size();   // popolamento Cell0D_num
+    mesh.Cell1D_num = mesh.Cell1D_id.size();   // popolamento Cell1D_num
+    mesh.Cell2D_num = mesh.Cell2D_id.size();   // popolamento Cell2D_num
 
-    mesh.NumCell3Ds = 1;
+    /// Popolamento della Cell3D
+    mesh.Cell3D_num = 1;
     mesh.Cell3DsId.push_back(0);
 
-    vector<int> cell3D_vertices(mesh.NumCell0Ds);
-    iota(cell3D_vertices.begin(), cell3D_vertices.end(), 0);
-    mesh.Cell3DsVertices.push_back(cell3D_vertices);
+    vector<int> vertici_cell3d(mesh.Cell0D_num);
+    iota(vertici_cell3d.begin(), vertici_cell3d.end(), 0);
+    mesh.Cell3D_vertici.push_back(vertici_cell3d);
 
-    vector<int> cell3D_edges(mesh.NumCell1Ds);
-    iota(cell3D_edges.begin(), cell3D_edges.end(), 0);
-    mesh.Cell3DsEdges.push_back(cell3D_edges);
+    vector<int> lati_cell3d(mesh.Cell1D_num);
+    iota(lati_cell3d.begin(), lati_cell3d.end(), 0);
+    mesh.Cell3D_lati.push_back(lati_cell3d);
 
-    vector<int> cell3D_faces(mesh.NumCell2Ds);
-    iota(cell3D_faces.begin(), cell3D_faces.end(), 0);
-    mesh.Cell3DsFaces.push_back(cell3D_faces);
+    vector<int> facce_cell3d(mesh.Cell2D_num);
+    iota(facce_cell3d.begin(), facce_cell3d.end(), 0);
+    mesh.Cell3D_facce.push_back(facce_cell3d);
 
-    // Ottimizzazione memoria
-    mesh.Cell2DsId.shrink_to_fit();
-    mesh.Cell2DsEdges.shrink_to_fit();
-    mesh.Cell2DsVertices.shrink_to_fit();
-    mesh.Cell2DsNumEdges.shrink_to_fit();
+    // Ottimizzazione memoria : togliere memoria inutilizzata dopo il dinamismo
+    mesh.Cell2D_id.shrink_to_fit();
+    mesh.Cell2D_lati.shrink_to_fit();
+    mesh.Cell2D_vertici.shrink_to_fit();
+    mesh.Cell2D_numLati.shrink_to_fit();  
+
+    // ATTENZIONE: fare lo shrink_to_fit anche per le altre Cell?
 }
-
-
 
 
 /*-----------------------------------------------------------------------------------------------*/
 /*
-// Funzione : Baricentro : calcola in coordinate il baricentro di un triangolo
-// Inputs : A,B,C : vertici del triangolo (in coord)
-// Outputs : coordinate del baricentro di quel triangolo
+- Funzione : baricentro : calcola in coordinate il baricentro di un triangolo
+- Inputs : A,B,C : vertici del triangolo (in coord)
+- return : coordinate del baricentro di quel triangolo
 */
-array<double,3> Baricentro(const array<double,3>& A, const array<double,3>& B, const array<double,3>& C) {
-return {(A[0]+B[0]+C[0])/3.0, (A[1]+B[1]+C[1])/3.0, (A[2]+B[2]+C[2])/3.0};
-}
+array<double,3> calcola_baricentro(const array<double,3>& A, 
+                           const array<double,3>& B, 
+                           const array<double,3>& C) 
+{ return {(A[0]+B[0]+C[0])/3.0, (A[1]+B[1]+C[1])/3.0, (A[2]+B[2]+C[2])/3.0}; }
+
 
 /*-----------------------------------------------------------------------------------------------*/
 /*
-//Funzione : PuntoMedio : calcola in coordinate  il punto medio di un lato
-// Inputs : A,B : estremi di un lato (in coord)
-// Outputs : punto medio in coordinate
+- Funzione : calcola_puntomedio : calcola in coordinate  il punto medio di un lato
+- Inputs : A,B : estremi di un lato (in coord)
+- return : punto medio in coordinate
 */
-array<double,3> PuntoMedio(const array<double,3>& A, const array<double,3>& B) {
-return {(A[0]+B[0])/2.0, (A[1]+B[1])/2.0, (A[2]+B[2])/2.0};
-}
+array<double,3> calcola_puntomedio(const array<double,3>& A, const array<double,3>& B) 
+{ return {(A[0]+B[0])/2.0, (A[1]+B[1])/2.0, (A[2]+B[2])/2.0}; }
+
 
 /*-----------------------------------------------------------------------------------------------*/
-
 /* 
-// Funzione : mesh secondo la triangolazione di classe 2 con b = c con b>0 (classe II), considerando:
-// Inputs : p, q, b, c==b con b > 0
-// Outputs : riempimento del mesh in PolyhedralMesh
+- Funzione : build_classe_2 : mesh secondo la triangolazione di classe 2 con b = c con b>0 (classe II)
+- Inputs : p, q, b, c==b con b > 0
+- return : riempimento del mesh in PolyhedralMesh
 */
 void build_classe_2(unsigned int p, 
                     unsigned int q, 
@@ -304,29 +380,38 @@ void build_classe_2(unsigned int p,
                     unsigned int c, 
                     PolyhedralMesh& mesh) {
     
+    /// vertici e facce del poligono base
     vector<array<double, 3>> vertici_iniziali;
     vector<array<int, 3>> facce_iniziali;
 
-    if (q == 5) build_ico(vertici_iniziali, facce_iniziali);
-    else if (q == 4) build_octa(vertici_iniziali, facce_iniziali);
-    else build_tetra(vertici_iniziali, facce_iniziali);
+    switch (q) {
+        case 5:
+            build_ico(vertici_iniziali, facce_iniziali);
+            break;
+        case 4:
+            build_octa(vertici_iniziali, facce_iniziali);
+            break;
+        case 3:
+            build_tetra(vertici_iniziali, facce_iniziali);
+            break;
+    }
 
-    map<pair<unsigned int,unsigned int>, unsigned int> map1D_2;   // key: coppia di id di vertici -> id dell'arco
-    map<array<double, 3>, unsigned int> map0D_2;
-    unsigned int fid = 0;
-
+    map<array<double, 3>, unsigned int> map0D;   // key = coordinate del vertice -> ide del vertice
+    map<pair<unsigned int,unsigned int>, unsigned int> map1D;   // key = id dei vertici estremi -> id del lato
     
+    unsigned int fid = 0;   // id delle facce
+
     set<pair<unsigned int,unsigned int>> archi;   // raccolta di tutti gli archi identificati dagli id dei vertici
 
-    for (const auto& face : facce_iniziali) {
-        const auto& A = vertici_iniziali[face[0]];
-        const auto& B = vertici_iniziali[face[1]];
-        const auto& C = vertici_iniziali[face[2]]; 
+    for (const auto& faccia : facce_iniziali) {
+        const auto& A = vertici_iniziali[faccia[0]];
+        const auto& B = vertici_iniziali[faccia[1]];
+        const auto& C = vertici_iniziali[faccia[2]]; 
 
-        map<array<int,3>, unsigned int> coordBari_id;   // key: vettori per coord bari -> id del bari  
-        coordBari_id.clear();
+        map<array<int,3>, unsigned int> coordinate_bari_id;   // key: array con coord bari -> id del bari  
+        coordinate_bari_id.clear();
 
-        /// "GRIGLIA" COME NEL build_classe_1
+        /// "griglia" come nel build_classe_1
         for (int i = 0; i <= (int)b; ++i) {
             for (int j = 0; j <= (int)(b - i); ++j) {
                 int k = b - i - j;   // regola base delle coord baricentrice
@@ -334,30 +419,31 @@ void build_classe_2(unsigned int p,
                 double y = (i * A[1] + j * B[1] + k * C[1]) / double(b);
                 double z = (i * A[2] + j * B[2] + k * C[2]) / double(b);
                 array<double,3> P = {x,y,z};
-                coordBari_id[{i,j,k}] = salva_vertice_norm(P, map0D_2, mesh); // assegno un id alle coord
+                coordinate_bari_id[{i,j,k}] = salva_vertice_norm(P, map0D, mesh);  
             }
         }
 
 
         vector<tuple<unsigned int,unsigned int,unsigned int>> sotto_triangoli;   // vettore di sottotriangoli rappresentati dagli id
 
-        /// SOTTO-TRIANGOLI
+        /// Salvataggio di Sotto-triangoli
         for (int i = 0; i < (int)b; ++i) {
             for (int j = 0; j < (int)(b - i); ++j) {
                 int k = b - i - j;
-                unsigned int v1 = coordBari_id[{i,j,k}];
-                unsigned int v2 = coordBari_id[{i+1,j,k-1}];
-                unsigned int v3 = coordBari_id[{i,j+1,k-1}];
-                sotto_triangoli.emplace_back(v1, v2, v3);
+                unsigned int v1 = coordinate_bari_id[{i,j,k}];
+                unsigned int v2 = coordinate_bari_id[{i+1,j,k-1}];
+                unsigned int v3 = coordinate_bari_id[{i,j+1,k-1}];
+                sotto_triangoli.emplace_back(v1, v2, v3);   // emplace_back : costruisce l'elemento direttamente dentro il vector
+
                 if (i + j < (int)(b - 1)) {
-                    unsigned int v4 = coordBari_id[{i+1,j+1,k-2}];
+                    unsigned int v4 = coordinate_bari_id[{i+1,j+1,k-2}];
                     sotto_triangoli.emplace_back(v2, v4, v3);
                 }
             }
         }
 
 
-        /// LATI CONDIVISI DA DUE SOTTOTRIANGOLI
+        /// Lati condivisi da due sotto-triangoli
         map<pair<unsigned int,unsigned int>, int> lati_condivisi;   // key: lato -> ripetizioni
 
         for (const auto& tri : sotto_triangoli) {
@@ -370,75 +456,81 @@ void build_classe_2(unsigned int p,
             }
         }
 
-        vector<unsigned int> bari_id;   // insieme di id dei baricentri
+        vector<unsigned int> bari_id;   // vector di id dei baricentri
 
-        /// ANALISI DI OGNI SOTTO-TRIANGOLO
+        /// Analisi di ogni sotto-triangolo
         for (auto& tri : sotto_triangoli) {   
-            unsigned int v1 = get<0>(tri);   // id del primo vertice
+
+            unsigned int v1 = get<0>(tri); 
             unsigned int v2 = get<1>(tri);
             unsigned int v3 = get<2>(tri);
 
-            /// CALCOLO DEL BARICENTRO
-            array<double,3> A = {mesh.Cell0DsCoordinates(0,v1), mesh.Cell0DsCoordinates(1,v1), mesh.Cell0DsCoordinates(2,v1)};
-            array<double,3> B = {mesh.Cell0DsCoordinates(0,v2), mesh.Cell0DsCoordinates(1,v2), mesh.Cell0DsCoordinates(2,v2)};
-            array<double,3> C = {mesh.Cell0DsCoordinates(0,v3), mesh.Cell0DsCoordinates(1,v3), mesh.Cell0DsCoordinates(2,v3)};
-            array<double,3> G = Baricentro(A,B,C);   // calcolo bari del sottotriangolo
-            unsigned int G_id = salva_vertice_norm(G, map0D_2, mesh);   // Cell0DsCoordinates e Cell0DsId del baricentro
+            /// Calcolo del baricentro di ogni sotto-triangolo
+            array<double,3> A = {mesh.Cell0D_coordinate(0,v1), mesh.Cell0D_coordinate(1,v1), mesh.Cell0D_coordinate(2,v1)};
+            array<double,3> B = {mesh.Cell0D_coordinate(0,v2), mesh.Cell0D_coordinate(1,v2), mesh.Cell0D_coordinate(2,v2)};
+            array<double,3> C = {mesh.Cell0D_coordinate(0,v3), mesh.Cell0D_coordinate(1,v3), mesh.Cell0D_coordinate(2,v3)};
+            
+            array<double,3> G = calcola_baricentro(A,B,C);   // calcolo bari del sottotriangolo
+            unsigned int G_id = salva_vertice_norm(G, map0D, mesh);   // Cell0D_coordinate e Cell0D_id del baricentro
+
             bari_id.push_back(G_id);
 
-            // LATI BARI-VERTICI_SOTTOTRIANGOLO
+            /// lati bari-vertici_sottotriangolo
             for (auto v : {v1, v2, v3}) {
                 unsigned int a = min(G_id,v);
                 unsigned int b = max(G_id,v);
                 pair<unsigned int,unsigned int> GV_key = {a,b};
-                if (!map1D_2.count(GV_key)) {
-                    map1D_2[GV_key] = mesh.Cell1DsId.size();
-                    mesh.Cell1DsId.push_back(map1D_2[GV_key]);
-                    mesh.Cell1DsExtrema.conservativeResize(2, map1D_2[GV_key] + 1);
-                    mesh.Cell1DsExtrema(0, map1D_2[GV_key]) = a;
-                    mesh.Cell1DsExtrema(1, map1D_2[GV_key]) = b;
+                
+                if (!map1D.count(GV_key)) {
+                    map1D[GV_key] = mesh.Cell1D_id.size();
+                    mesh.Cell1D_id.push_back(map1D[GV_key]);
+                    mesh.Cell1D_estremi.conservativeResize(2, map1D[GV_key] + 1);
+                    mesh.Cell1D_estremi(0, map1D[GV_key]) = a;
+                    mesh.Cell1D_estremi(1, map1D[GV_key]) = b;
 
                     archi.insert(GV_key);
                 }
             }
 
-            /// LATI COI PUNTI_MEDI
+            /// lati coi punti medi
             array<pair<unsigned int,unsigned int>,3> lati = {make_pair(v1,v2),make_pair(v2,v3),make_pair(v3,v1)};   //lati del sottotriangolo
         
             for (auto [u,v] : lati) {
                 if (u > v) swap(u,v);   //  ordine (min, max)
 
-                /// PUNTI MEDI
+                /// punti medi
                 if (lati_condivisi[{u,v}] == 1) {
-                    array<double,3> P1 = {mesh.Cell0DsCoordinates(0,u), mesh.Cell0DsCoordinates(1,u), mesh.Cell0DsCoordinates(2,u)};
-                    array<double,3> P2 = {mesh.Cell0DsCoordinates(0,v), mesh.Cell0DsCoordinates(1,v), mesh.Cell0DsCoordinates(2,v)};
-                    array<double,3> M = PuntoMedio(P1, P2);
-                    unsigned int M_id = salva_vertice_norm(M, map0D_2, mesh);
+                    array<double,3> P1 = {mesh.Cell0D_coordinate(0,u), mesh.Cell0D_coordinate(1,u), mesh.Cell0D_coordinate(2,u)};
+                    array<double,3> P2 = {mesh.Cell0D_coordinate(0,v), mesh.Cell0D_coordinate(1,v), mesh.Cell0D_coordinate(2,v)};
+                    array<double,3> M = calcola_puntomedio(P1, P2);
+                    unsigned int M_id = salva_vertice_norm(M, map0D, mesh);
 
-                    /// LATI BARI-PUNTO_MEDIO
+                    /// lati bari-punto_medio
                     unsigned int a = min(M_id,G_id);
                     unsigned int b = max(M_id,G_id);
                     pair<unsigned int,unsigned int> MG_key = {a,b};
-                    if (!map1D_2.count(MG_key)) {
-                        map1D_2[MG_key] = mesh.Cell1DsId.size();
-                        mesh.Cell1DsId.push_back(map1D_2[MG_key]);
-                        mesh.Cell1DsExtrema.conservativeResize(2, map1D_2[MG_key] + 1);
-                        mesh.Cell1DsExtrema(0, map1D_2[MG_key]) = a;
-                        mesh.Cell1DsExtrema(1, map1D_2[MG_key]) = b;
+
+                    if (!map1D.count(MG_key)) {
+                        map1D[MG_key] = mesh.Cell1D_id.size();
+                        mesh.Cell1D_id.push_back(map1D[MG_key]);
+                        mesh.Cell1D_estremi.conservativeResize(2, map1D[MG_key] + 1);
+                        mesh.Cell1D_estremi(0, map1D[MG_key]) = a;
+                        mesh.Cell1D_estremi(1, map1D[MG_key]) = b;
 
                         archi.insert(MG_key);
                     }
 
-                    /// LATI PUNTO_MEDIO-VERTICI_GENERATORI
+                    /// lati punto_medio-vertici_generatori
                     unsigned int c = min(u,M_id);
                     unsigned int d = max(u,M_id);
                     pair<unsigned int,unsigned int> uM_key = {c,d};
-                    if (!map1D_2.count(uM_key)) {
-                        map1D_2[uM_key] = mesh.Cell1DsId.size();
-                        mesh.Cell1DsId.push_back(map1D_2[uM_key]);
-                        mesh.Cell1DsExtrema.conservativeResize(2, map1D_2[uM_key] + 1);
-                        mesh.Cell1DsExtrema(0, map1D_2[uM_key]) = c;
-                        mesh.Cell1DsExtrema(1, map1D_2[uM_key]) = d;
+
+                    if (!map1D.count(uM_key)) {
+                        map1D[uM_key] = mesh.Cell1D_id.size();
+                        mesh.Cell1D_id.push_back(map1D[uM_key]);
+                        mesh.Cell1D_estremi.conservativeResize(2, map1D[uM_key] + 1);
+                        mesh.Cell1D_estremi(0, map1D[uM_key]) = c;
+                        mesh.Cell1D_estremi(1, map1D[uM_key]) = d;
 
                         archi.insert(uM_key);
                     }
@@ -446,37 +538,40 @@ void build_classe_2(unsigned int p,
                     unsigned int e = min(v,M_id);
                     unsigned int f = max(v,M_id);
                     pair<unsigned int,unsigned int> vM_key = {e,f};
-                    if (!map1D_2.count(vM_key)) {
-                        map1D_2[vM_key] = mesh.Cell1DsId.size();
-                        mesh.Cell1DsId.push_back(map1D_2[vM_key]);
-                        mesh.Cell1DsExtrema.conservativeResize(2, map1D_2[vM_key] + 1);
-                        mesh.Cell1DsExtrema(0, map1D_2[vM_key]) = e;
-                        mesh.Cell1DsExtrema(1, map1D_2[vM_key]) = f;
+
+                    if (!map1D.count(vM_key)) {
+                        map1D[vM_key] = mesh.Cell1D_id.size();
+                        mesh.Cell1D_id.push_back(map1D[vM_key]);
+                        mesh.Cell1D_estremi.conservativeResize(2, map1D[vM_key] + 1);
+                        mesh.Cell1D_estremi(0, map1D[vM_key]) = e;
+                        mesh.Cell1D_estremi(1, map1D[vM_key]) = f;
 
                         archi.insert(vM_key);
                     }
                 }
             }
-
         } 
 
-        /// LATI BARI-BARI ADIACENTI
+        /// lati tra di sottotriangoli adiacenti
         for (size_t i = 0; i < sotto_triangoli.size(); ++i) {
             for (size_t j = i+1; j < sotto_triangoli.size(); ++j) {
                 set<unsigned int> v1 = {get<0>(sotto_triangoli[i]), get<1>(sotto_triangoli[i]), get<2>(sotto_triangoli[i])};
                 set<unsigned int> v2 = {get<0>(sotto_triangoli[j]), get<1>(sotto_triangoli[j]), get<2>(sotto_triangoli[j])};
+
                 vector<unsigned int> vertici_condivisi;
                 set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(vertici_condivisi));   //i vertici identici
+
                 if (vertici_condivisi.size() == 2) {   // allora c'è  un lato in comune
                     unsigned int a = min(bari_id[i], bari_id[j]);
                     unsigned int b = max(bari_id[i], bari_id[j]);
                     pair<unsigned int,unsigned int> BB_key = {a, b};
-                    if (!map1D_2.count(BB_key)) {
-                        map1D_2[BB_key] = mesh.Cell1DsId.size();
-                        mesh.Cell1DsId.push_back(map1D_2[BB_key]);
-                        mesh.Cell1DsExtrema.conservativeResize(2, map1D_2[BB_key] + 1);
-                        mesh.Cell1DsExtrema(0, map1D_2[BB_key]) = a;
-                        mesh.Cell1DsExtrema(1, map1D_2[BB_key]) = b;
+
+                    if (!map1D.count(BB_key)) {
+                        map1D[BB_key] = mesh.Cell1D_id.size();
+                        mesh.Cell1D_id.push_back(map1D[BB_key]);
+                        mesh.Cell1D_estremi.conservativeResize(2, map1D[BB_key] + 1);
+                        mesh.Cell1D_estremi(0, map1D[BB_key]) = a;
+                        mesh.Cell1D_estremi(1, map1D[BB_key]) = b;
 
                         archi.insert(BB_key);
                     }
@@ -485,14 +580,14 @@ void build_classe_2(unsigned int p,
         }
     }
 
-    /// LATI NELLA MESH
-    mesh.NumCell0Ds = mesh.Cell0DsId.size();   // NumCell0Ds
-    mesh.NumCell1Ds = mesh.Cell1DsId.size();   // NumCell1Ds
+    mesh.Cell0D_num = mesh.Cell0D_id.size();   // popolamento Cell0D_num
+    mesh.Cell1D_num = mesh.Cell1D_id.size();   // popolamento Cell1D_num
 
     unordered_set<string> facce_codificate;
 
     // Ricostruzione mappa adiacenze
     unordered_map<unsigned int, unordered_set<unsigned int>> adiacenze;
+
     for (const auto& [u, v] : archi) {
         adiacenze[u].insert(v);
         adiacenze[v].insert(u);
@@ -527,7 +622,7 @@ void build_classe_2(unsigned int p,
                 vector<int> edges;
                 bool arco_mancante = false;
                 for (auto& lato : lati) {
-                    if (map1D_2.count(lato)) {edges.push_back(map1D_2[lato]);}
+                    if (map1D.count(lato)) {edges.push_back(map1D[lato]);}
                     else {
                         arco_mancante = true;
                         break;
@@ -535,99 +630,95 @@ void build_classe_2(unsigned int p,
                 }
                 if (arco_mancante) continue;
 
-                mesh.Cell2DsId.push_back(fid);
-                mesh.Cell2DsVertices.push_back(vertici);  // ordine ciclico coerente
-                mesh.Cell2DsEdges.push_back(edges);       // ordine coerente con vertici
-                mesh.Cell2DsNumEdges.push_back(3);
+                mesh.Cell2D_id.push_back(fid);   //popolamento Cell2D_id
+                mesh.Cell2D_vertici.push_back(vertici);  // popolamento Cell2D_vertici
+                mesh.Cell2D_lati.push_back(edges);       // popolamento Cell2D_lati
+                mesh.Cell2D_numLati.push_back(edges.size());   // popolamento Cell2D_numLati
                 fid++;
             }
         }
     }
 
-    mesh.NumCell2Ds = mesh.Cell2DsId.size();   // NumCell2Ds
+    mesh.Cell2D_num = mesh.Cell2D_id.size();   // popolamento Cell2D_num
 
-	// CELL3D (UNICA)
-    mesh.NumCell3Ds = 1;
-    mesh.Cell3DsId.push_back(0);
+	/// popolamento Cell3D
+    mesh.Cell3D_num = 1;
+    mesh.Cell3D_id.push_back(0);
 
     // Tutti i vertici usati nella mesh
-    vector<int> cell3D_vertices(mesh.NumCell0Ds);
-    iota(cell3D_vertices.begin(), cell3D_vertices.end(), 0);
-    mesh.Cell3DsVertices.push_back(cell3D_vertices);
+    vector<int> vertici_cell3d(mesh.Cell0D_num);
+    iota(vertici_cell3d.begin(), vertici_cell3d.end(), 0);
+    mesh.Cell3D_vertici.push_back(vertici_cell3d);
 
     // Tutti gli spigoli usati nella mesh
-    vector<int> cell3D_edges(mesh.NumCell1Ds);
-    iota(cell3D_edges.begin(), cell3D_edges.end(), 0);
-    mesh.Cell3DsEdges.push_back(cell3D_edges);
+    vector<int> lati_cell3d(mesh.Cell1D_num);
+    iota(lati_cell3d.begin(), lati_cell3d.end(), 0);
+    mesh.Cell3D_lati.push_back(lati_cell3d);
 
     // Tutte le facce usate nella mesh
-    vector<int> cell3D_faces(mesh.NumCell2Ds);
-    iota(cell3D_faces.begin(), cell3D_faces.end(), 0);
-    mesh.Cell3DsFaces.push_back(cell3D_faces);
+    vector<int> facce_cell3d(mesh.Cell2D_num);
+    iota(facce_cell3d.begin(), facce_cell3d.end(), 0);
+    mesh.Cell3D_facce.push_back(facce_cell3d);
 
+    /// ottimizzazione della memoria
+    mesh.Cell2D_id.shrink_to_fit();
+    mesh.Cell2D_lati.shrink_to_fit();
+    mesh.Cell2D_vertici.shrink_to_fit();
+    mesh.Cell2D_numLati.shrink_to_fit();
 
-    mesh.Cell2DsId.shrink_to_fit(); // shrink_to_fit libera la memoria inutilizzata
-    mesh.Cell2DsEdges.shrink_to_fit();
-    mesh.Cell2DsVertices.shrink_to_fit();
-    mesh.Cell2DsNumEdges.shrink_to_fit();
+    // ATTENZIONE : valutare anche il shrink_to_fit per le altre Cell?
 }
 
-/*-----------------------------------------------------------------------------------------------*/
 
-/// Funzione che genera tutti i file
-void GeneraTuttiFile(const PolyhedralMesh& mesh, 
+/*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che genera tutti i file .txt
+*/
+void genera_tutti_file(const PolyhedralMesh& mesh, 
                      const string& outfilename0D,
                      const string& outfilename1D,
                      const string& outfilename2D,
-                     const string& outfilename3D) {
-	 if (! GeneraFileCell0D (mesh, outfilename0D))
-	 {
-		 cerr<<"Problemi di esportazione per Cell0Ds.txt"<< endl;
-		 
-	  }
-	  else 
-	  	cout<<"Esportazione terminata con successo per Cell0Ds.txt"<< endl;
+                     const string& outfilename3D) 
+{
+    if (! genera_file_Cell0D (mesh, outfilename0D))
+    { 
+        cerr<<"Problemi di esportazione per Cell0Ds.txt"<< endl;
+    } else 
+        cout<<"Esportazione terminata con successo per Cell0Ds.txt"<< endl;
+	 
+	if (! genera_file_Cell1D (mesh, outfilename1D))
+	{
+        cerr<<"Problemi di esportazione per Cell1Ds.txt"<< endl;
+	} else
+        cout<<"Esportazione terminata con successo per Cell1Ds.txt"<< endl;
 	  	
-	  
-	  if (! GeneraFileCell1D (mesh, outfilename1D))
-	 {
-		 cerr<<"Problemi di esportazione per Cell1Ds.txt"<< endl;
-		 
-	  }
-	  else
-	  	cout<<"Esportazione terminata con successo per Cell1Ds.txt"<< endl;
-	  	
-	  	
-	  if (! GeneraFileCell2D (mesh, outfilename2D))
-	 {
-		 cerr<<"Problemi di esportazione per Cell2Ds.txt"<< endl;
-		 
-	  }
-	  else
-	  	cout<<"Esportazione terminata con successo per Cell2Ds.txt"<< endl;
+	if (! genera_file_Cell2D (mesh, outfilename2D))
+	{
+        cerr<<"Problemi di esportazione per Cell2Ds.txt"<< endl;
+	} else
+        cout<<"Esportazione terminata con successo per Cell2Ds.txt"<< endl;
 	  	
 	  	
-	  if (! GeneraFileCell3D (mesh, outfilename3D))
-	 {
-		 cerr<<"Problemi di esportazione per Cell3Ds.txt"<< endl;
-		 
-	  }
-	  else
-	  	cout<<"Esportazione terminata con successo per Cell3Ds.txt"<< endl;
+	if (! genera_file_Cell3D (mesh, outfilename3D))
+	{
+        cerr<<"Problemi di esportazione per Cell3Ds.txt"<< endl;
+	} else
+        cout<<"Esportazione terminata con successo per Cell3Ds.txt"<< endl;
 	  	
-	  }
+}
 		 
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che genera il file Cell0D
+*/
 
-/// Funzione che genera il file Cell0D
-
-bool GeneraFileCell0D(const PolyhedralMesh& mesh, const string& outfilename) {
+bool genera_file_Cell0D(const PolyhedralMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) return false;
 
     file << "Id, x, y, z\n";
     
-    // CONTROLLO MARKER (da eliminare)
+    // controllo marker (non obbligatorio)
     auto it = mesh.MarkerCell0Ds.find(1);
     if (it != mesh.MarkerCell0Ds.end()) {
         cout << "La chiave 1 è presente nella mappa." << endl;
@@ -636,25 +727,25 @@ bool GeneraFileCell0D(const PolyhedralMesh& mesh, const string& outfilename) {
     }
 
 
-    for (unsigned int i = 0; i < mesh.NumCell0Ds; ++i) {   //stampa sul outputFile
-        file << mesh.Cell0DsId[i] << ", "
-             << setprecision(10) << mesh.Cell0DsCoordinates(0, i) << ", "
-             << setprecision(10) << mesh.Cell0DsCoordinates(1, i) << ", "
-			 << setprecision(10) << mesh.Cell0DsCoordinates(2, i) << "\n";
+    for (unsigned int i = 0; i < mesh.Cell0D_num; ++i) {   //stampa sul outputFile
+        file << mesh.Cell0D_id[i] << ", "
+             << setprecision(10) << mesh.Cell0D_coordinate(0, i) << ", "
+             << setprecision(10) << mesh.Cell0D_coordinate(1, i) << ", "
+			 << setprecision(10) << mesh.Cell0D_coordinate(2, i) << "\n";
             
     }
 
     file.close();
-	
-	
+    
     return true;
 }
 
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che genera il file Cell1D
+*/
 
-/// Funzione che genera il file Cell1D
-
-bool GeneraFileCell1D(const PolyhedralMesh& mesh, const string& outfilename) {
+bool genera_file_Cell1D(const PolyhedralMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) {
         cerr << "Errore apertura file " << outfilename << endl;
@@ -663,7 +754,7 @@ bool GeneraFileCell1D(const PolyhedralMesh& mesh, const string& outfilename) {
 
     file << "Id, Id_Origine, Id_Fine\n";
 
-    // CONTROLLO MARKER (da eliminare)
+    // controllo marker (non obbligatorio)
     auto it = mesh.MarkerCell1Ds.find(1);
     if (it != mesh.MarkerCell1Ds.end()) {
         cout << "La chiave 1 è presente nella mappa." << endl;
@@ -671,11 +762,12 @@ bool GeneraFileCell1D(const PolyhedralMesh& mesh, const string& outfilename) {
         cout << "La chiave 1 non è presente nella mappa." << endl;
     }
 
-    for (unsigned int i= 0; i < mesh.NumCell1Ds; ++i) {   // stampa sul outputFile
-        file << mesh.Cell1DsId[i] << ", " 
-		<< setprecision(10) << mesh.Cell1DsExtrema(0,i)<< ", " 
-		<<setprecision(10) << mesh.Cell1DsExtrema(1,i) << "\n";
+    for (unsigned int i= 0; i < mesh.Cell1D_num; ++i) {   // stampa sul outputFile
+        file << mesh.Cell1D_id[i] << ", " 
+		<< setprecision(10) << mesh.Cell1D_estremi(0,i)<< ", " 
+		<<setprecision(10) << mesh.Cell1D_estremi(1,i) << "\n";
     }
+
     file.close();
 
     return true;
@@ -683,10 +775,11 @@ bool GeneraFileCell1D(const PolyhedralMesh& mesh, const string& outfilename) {
 }
 
 /*-----------------------------------------------------------------------------------------------*/
+/*
+Funzione che genera il file Cell2D
+*/
 
-/// Funzione che genera il file Cell2D
-
-bool GeneraFileCell2D(const PolyhedralMesh& mesh, const string& outfilename) {
+bool genera_file_Cell2D(const PolyhedralMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) {
         cerr << "Errore apertura file " << outfilename << endl;
@@ -695,32 +788,33 @@ bool GeneraFileCell2D(const PolyhedralMesh& mesh, const string& outfilename) {
 
     file << "Id, NumVertici, NumSpigoli, Id_Vertici, Id_Spigoli\n";
 
-    for (unsigned int i= 0; i < mesh.NumCell2Ds; ++i) {
-        file << mesh.Cell2DsId[i] << ", "
-		<< setprecision(10) << mesh.Cell2DsVertices[i].size() << ", "
-        << setprecision(10) << mesh.Cell2DsEdges[i].size() << ", ";
+    for (unsigned int i= 0; i < mesh.Cell2D_num; ++i) {
+        file << mesh.Cell2D_id[i] << ", "
+		<< setprecision(10) << mesh.Cell2D_vertici[i].size() << ", "
+        << setprecision(10) << mesh.Cell2D_lati[i].size() << ", ";
 		
 		file << "[" ;
         // Vertici
-        for (size_t j=0; j < mesh.Cell2DsVertices[i].size();j++)
-            file << mesh.Cell2DsVertices[i][j] << "  ";
+        for (size_t j=0; j < mesh.Cell2D_vertici[i].size();j++)
+            file << mesh.Cell2D_vertici[i][j] << "  ";
         // Spigoli
         file << "], [" ;
-        for (size_t j=0; j<mesh.Cell2DsEdges[i].size();j++)
-            file << mesh.Cell2DsEdges[i][j] << "  ";
+        for (size_t j=0; j<mesh.Cell2D_lati[i].size();j++)
+            file << mesh.Cell2D_lati[i][j] << "  ";
 
         file << "]\n";
     }
+
     file.close();
+
     return true;
 }
 
 /*-----------------------------------------------------------------------------------------------*/
-
-/// Funzione che genera il file Cell3D
-
-
-bool GeneraFileCell3D(const PolyhedralMesh& mesh, const string& outfilename) {
+/*
+Funzione che genera Cell3D
+*/
+bool genera_file_Cell3D(const PolyhedralMesh& mesh, const string& outfilename) {
     ofstream file(outfilename);
     if (!file.is_open()) {
         cerr << "Errore apertura file " << outfilename << endl;
@@ -729,96 +823,102 @@ bool GeneraFileCell3D(const PolyhedralMesh& mesh, const string& outfilename) {
 
     file << "Id, NumVertici, NumSpigoli, NumFacce, Id_Vertici, Id_Spigoli, Id_Facce\n";
 	
-	for (unsigned int i = 0; i < mesh.NumCell3Ds; ++i) {
-        file << mesh.Cell0DsId[i] << ", "
-		<< setprecision(10) << mesh.Cell3DsVertices[i].size() << ", "
-		<< setprecision(10) << mesh.Cell3DsEdges[i].size() << ", "
-		<< setprecision(10) << mesh.Cell3DsFaces[i].size() << ", ";
+	for (unsigned int i = 0; i < mesh.Cell3D_num; ++i) {
+        file << mesh.Cell0D_id[i] << ", "
+		<< setprecision(10) << mesh.Cell3D_vertici[i].size() << ", "
+		<< setprecision(10) << mesh.Cell3D_lati[i].size() << ", "
+		<< setprecision(10) << mesh.Cell3D_facce[i].size() << ", ";
 		
 		file << "[" ;
         // Vertici
-        for (size_t j=0; j<mesh.Cell3DsVertices[i].size();j++)
-            file << mesh.Cell3DsVertices[i][j] << "  ";
+        for (size_t j=0; j<mesh.Cell3D_vertici[i].size();j++)
+            file << mesh.Cell3D_vertici[i][j] << "  ";
 		
 		// Spigoli
         file << "], [" ;
-        for (size_t j=0; j<mesh.Cell3DsEdges[i].size();j++)
-            file << mesh.Cell3DsEdges[i][j] << "  ";
+        for (size_t j=0; j<mesh.Cell3D_lati[i].size();j++)
+            file << mesh.Cell3D_lati[i][j] << "  ";
 		
 		// Facce
         file << "], [" ;
-        for (size_t j=0; j<mesh.Cell3DsFaces[i].size();j++)
-            file << mesh.Cell3DsFaces[i][j] << "  ";
+        for (size_t j=0; j<mesh.Cell3D_facce[i].size();j++)
+            file << mesh.Cell3D_facce[i][j] << "  ";
 
         file << "]\n";
 		
     }
+
     file.close();
+
     return true;
 }
 
 
-/*---------------------------------/// DUALE /// -------------------------------------------------------------*/
-
+/*-----------------------------------------------------------------------------------------------*/
 /*
-Function: calcola il CentroideCoordinate
-input2: Cell0DsCoordinates
+Function: calcola il calcola_coordinate_centroide
+input2: Cell0D_coordinate
 */
-
-static Vector3d CentroideCoordinate(const vector<int>& VerticesId, const MatrixXd& Cell0DsCoordinates) {
+static Vector3d calcola_coordinate_centroide(const vector<int>& VerticesId, const MatrixXd& Cell0D_coordinate) {
     Vector3d c(0.0, 0.0, 0.0);
-    for (int vid : VerticesId) {   //itera su ogni punto (con coordinate in colonna)
-        c += Cell0DsCoordinates.col(vid);
+
+    for (int vid : VerticesId) {   // itera su ogni punto (con coordinate in colonna)
+        c += Cell0D_coordinate.col(vid);
     }
-    c /= static_cast<double>(VerticesId.size());   //media (statica_cast trasforma l'intero in double per evitare la diviosione intera)
+    c /= static_cast<double>(VerticesId.size());   // media (statica_cast trasforma l'intero in double per evitare la diviosione intera)
     
 	double norm = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);   // calcolo la norma per normalizzare
     Vector3d p(c[0]/norm, c[1]/norm, c[2]/norm);
 	
     return p;     
-    // VALUTARE round()
 }
 
+
 /*-----------------------------------------------------------------------------------------------*/
+/* Funzione che genera il duale partendo da un geodetico
+- Funzione : build_duale
+- input 1 : mesh geodetico da cui partire
+- input 2 : mesh del duale
+*/
 void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& duale) {
     duale = PolyhedralMesh();
 
-    const int num_facce = geodetico.NumCell2Ds;
+    const int num_facce = geodetico.Cell2D_num;
 
-    // === 1. Costruisci i nuovi vertici: baricentri delle facce ===
-    duale.NumCell0Ds = num_facce;
-    duale.Cell0DsId.resize(num_facce);
-    duale.Cell0DsCoordinates.resize(3, num_facce);
+    /// Costruisci i vertici del duale: baricentri delle facce del geodetico
+    duale.Cell0D_num = num_facce;
+    duale.Cell0D_id.resize(num_facce);
+    duale.Cell0D_coordinate.resize(3, num_facce);
 
     for (int fid = 0; fid < num_facce; ++fid) {
         Vector3d baricentro(0, 0, 0);
-        for (int vid : geodetico.Cell2DsVertices[fid]) {
-            baricentro += geodetico.Cell0DsCoordinates.col(vid);
+        for (int vid : geodetico.Cell2D_vertici[fid]) {
+            baricentro += geodetico.Cell0D_coordinate.col(vid);
         }
-        baricentro /= static_cast<double>(geodetico.Cell2DsVertices[fid].size());
+        baricentro /= static_cast<double>(geodetico.Cell2D_vertici[fid].size());
 
         // Proiezione sulla sfera unitaria
-        baricentro.normalize();
+        baricentro.normalizza();
 
-        duale.Cell0DsId[fid] = fid;
-        duale.Cell0DsCoordinates.col(fid) = baricentro;
+        duale.Cell0D_id[fid] = fid;
+        duale.Cell0D_coordinate.col(fid) = baricentro;
     }
 
-    // === 2. Mappa vertice originale -> facce adiacenti ===
+    /// Mappa vertice originale -> facce adiacenti ===
     unordered_map<int, vector<int>> vertice_to_facce;
-    for (int fid = 0; fid < geodetico.NumCell2Ds; ++fid) {
-        for (int vid : geodetico.Cell2DsVertices[fid]) {
+    for (int fid = 0; fid < geodetico.Cell2D_num; ++fid) {
+        for (int vid : geodetico.Cell2D_vertici[fid]) {
             vertice_to_facce[vid].push_back(fid);
         }
     }
 
     // === 3. Costruisci le facce del duale (una per ogni vertice originale) ===
-    const int num_facce_duale = geodetico.NumCell0Ds;
-    duale.NumCell2Ds = num_facce_duale;
-    duale.Cell2DsId.resize(num_facce_duale);
-    duale.Cell2DsVertices.resize(num_facce_duale);
-    duale.Cell2DsEdges.resize(num_facce_duale);
-    duale.Cell2DsNumEdges.resize(num_facce_duale);
+    const int num_facce_duale = geodetico.Cell0D_num;
+    duale.Cell2D_num = num_facce_duale;
+    duale.Cell2D_id.resize(num_facce_duale);
+    duale.Cell2D_vertici.resize(num_facce_duale);
+    duale.Cell2D_lati.resize(num_facce_duale);
+    duale.Cell2D_numLati.resize(num_facce_duale);
 
 
     for (int vid = 0; vid < num_facce_duale; ++vid) {
@@ -826,10 +926,10 @@ void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& duale) {
 
         // Ordinamento ciclico dei baricentri attorno al vertice
         vector<pair<double, int>> angoli;
-        Vector3d center = geodetico.Cell0DsCoordinates.col(vid);
+        Vector3d center = geodetico.Cell0D_coordinate.col(vid);
 
         for (int fid : facce_adiacenti) {
-            Vector3d p = duale.Cell0DsCoordinates.col(fid);
+            Vector3d p = duale.Cell0D_coordinate.col(fid);
             Vector3d v = p - center;
             double angle = atan2(v.y(), v.x());   //proiezione 2D semplificata
             angoli.emplace_back(angle, fid);
@@ -842,9 +942,9 @@ void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& duale) {
             ordered_fids.push_back(fid);
         }
 
-        duale.Cell2DsId[vid] = vid;
-        duale.Cell2DsVertices[vid] = ordered_fids;
-        duale.Cell2DsNumEdges[vid] = static_cast<int>(ordered_fids.size());
+        duale.Cell2D_id[vid] = vid;
+        duale.Cell2D_vertici[vid] = ordered_fids;
+        duale.Cell2D_numLati[vid] = static_cast<int>(ordered_fids.size());
     }
     
     // === 3. Costruisci i lati del duale usando quelli del geodetico ===
@@ -852,7 +952,7 @@ void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& duale) {
     // Mappa da edge originale → facce adiacenti
     unordered_map<int, vector<int>> edge_to_faces;
     for (int fid = 0; fid < num_facce; ++fid) {
-        for (int eid : geodetico.Cell2DsEdges[fid]) {
+        for (int eid : geodetico.Cell2D_lati[fid]) {
             edge_to_faces[eid].push_back(fid);
         }
     }
@@ -873,19 +973,19 @@ void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& duale) {
         edge_extrema.push_back(key);
     }
 
-    duale.NumCell1Ds = static_cast<unsigned int>(edge_extrema.size());
-    duale.Cell1DsId.resize(duale.NumCell1Ds);
-    duale.Cell1DsExtrema = MatrixXi(2, duale.NumCell1Ds);
+    duale.Cell1D_num = static_cast<unsigned int>(edge_extrema.size());
+    duale.Cell1D_id.resize(duale.Cell1D_num);
+    duale.Cell1D_estremi = MatrixXi(2, duale.Cell1D_num);
 
-    for (int eid = 0; eid < duale.NumCell1Ds; ++eid) {
-        duale.Cell1DsId[eid] = eid;
-        duale.Cell1DsExtrema(0, eid) = edge_extrema[eid].first;
-        duale.Cell1DsExtrema(1, eid) = edge_extrema[eid].second;
+    for (int eid = 0; eid < duale.Cell1D_num; ++eid) {
+        duale.Cell1D_id[eid] = eid;
+        duale.Cell1D_estremi(0, eid) = edge_extrema[eid].first;
+        duale.Cell1D_estremi(1, eid) = edge_extrema[eid].second;
     }
 
     // === 4. Inserisci gli edge ID nelle facce del duale ===
-    for (int fid = 0; fid < duale.NumCell2Ds; ++fid) {
-        const vector<int>& v = duale.Cell2DsVertices[fid];
+    for (int fid = 0; fid < duale.Cell2D_num; ++fid) {
+        const vector<int>& v = duale.Cell2D_vertici[fid];
         vector<int> edge_ids;
 
         for (size_t i = 0; i < v.size(); ++i) {
@@ -898,21 +998,21 @@ void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& duale) {
             }
         }
 
-        duale.Cell2DsEdges[fid] = edge_ids;
+        duale.Cell2D_lati[fid] = edge_ids;
     }
 
     // === 5. Definisci il singolo poliedro ===
-    duale.NumCell3Ds = 1;
+    duale.Cell3D_num = 1;
     duale.Cell3DsId = {0};
 
-    vector<int> all_v(duale.NumCell0Ds), all_e(duale.NumCell1Ds), all_f(duale.NumCell2Ds);
+    vector<int> all_v(duale.Cell0D_num), all_e(duale.Cell1D_num), all_f(duale.Cell2D_num);
     iota(all_v.begin(), all_v.end(), 0);
     iota(all_e.begin(), all_e.end(), 0);
     iota(all_f.begin(), all_f.end(), 0);
 
-    duale.Cell3DsVertices = {all_v};
-    duale.Cell3DsEdges    = {all_e};
-    duale.Cell3DsFaces    = {all_f};
+    duale.Cell3D_vertici = {all_v};
+    duale.Cell3D_lati    = {all_e};
+    duale.Cell3D_facce    = {all_f};
 }
 
 /*-----------------------------------------------------------------------------------------------*/
@@ -924,9 +1024,9 @@ void Dijkstra(PolyhedralMesh& mesh, unsigned int vertice_iniziale, unsigned int 
     // Lista adiacenza dal vettore degli archi (Cell1Ds)
     map<unsigned int, vector<unsigned int>> ListaVerticiAdiacenti;   // key: id del vertice -> val: vettore dei vertici adiacenti in id
 
-    for (unsigned int j = 0; j < mesh.NumCell1Ds; ++j) {
-        unsigned int u = mesh.Cell1DsExtrema(0, j);
-        unsigned int v = mesh.Cell1DsExtrema(1, j);
+    for (unsigned int j = 0; j < mesh.Cell1D_num; ++j) {
+        unsigned int u = mesh.Cell1D_estremi(0, j);
+        unsigned int v = mesh.Cell1D_estremi(1, j);
         ListaVerticiAdiacenti[u].push_back(v);
         ListaVerticiAdiacenti[v].push_back(u);
     }
@@ -956,9 +1056,9 @@ void Dijkstra(PolyhedralMesh& mesh, unsigned int vertice_iniziale, unsigned int 
         for (unsigned int v : ListaVerticiAdiacenti[u]) {
             // Calcola distanza euclidea tra u e v
             double dist_uv = sqrt(
-                pow(mesh.Cell0DsCoordinates(0,u) - mesh.Cell0DsCoordinates(0,v), 2) +
-                pow(mesh.Cell0DsCoordinates(1,u) - mesh.Cell0DsCoordinates(1,v), 2) +
-                pow(mesh.Cell0DsCoordinates(2,u) - mesh.Cell0DsCoordinates(2,v), 2)
+                pow(mesh.Cell0D_coordinate(0,u) - mesh.Cell0D_coordinate(0,v), 2) +
+                pow(mesh.Cell0D_coordinate(1,u) - mesh.Cell0D_coordinate(1,v), 2) +
+                pow(mesh.Cell0D_coordinate(2,u) - mesh.Cell0D_coordinate(2,v), 2)
             );
 
             double nuova_dist = dist[u] + dist_uv;
@@ -1000,10 +1100,10 @@ void Dijkstra(PolyhedralMesh& mesh, unsigned int vertice_iniziale, unsigned int 
     for (size_t i = 1; i < path.size(); ++i) {
         unsigned int u = path[i-1];
         unsigned int v = path[i];
-        for (unsigned int j = 0; j < mesh.NumCell1Ds; ++j) {
-            if ((mesh.Cell1DsExtrema(0, j) == u && mesh.Cell1DsExtrema(1, j) == v) ||
-                (mesh.Cell1DsExtrema(0, j) == v && mesh.Cell1DsExtrema(1, j) == u)) {
-                mesh.MarkerCell1Ds[1].push_back(mesh.Cell1DsId[j]);
+        for (unsigned int j = 0; j < mesh.Cell1D_num; ++j) {
+            if ((mesh.Cell1D_estremi(0, j) == u && mesh.Cell1D_estremi(1, j) == v) ||
+                (mesh.Cell1D_estremi(0, j) == v && mesh.Cell1D_estremi(1, j) == u)) {
+                mesh.MarkerCell1Ds[1].push_back(mesh.Cell1D_id[j]);
                 cout << "Arco cammino: " << j << endl;
                 break;
             }
