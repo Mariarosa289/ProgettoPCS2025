@@ -17,7 +17,6 @@ using namespace PolyhedralLibrary;
 
 int main () {
 	
-	
 		unsigned int p, q, b, c, vertice_iniziale, vertice_finale;
 		auto r=0;
 	
@@ -72,7 +71,7 @@ int main () {
 			cout << "Inserisci l'ID del vertice finale: ";
 			cin >> vertice_finale;
 
-			if (vertice_finale <0 || vertice_finale >mesh.NumCell0Ds-1 || vertice_iniziale <0 || vertice_iniziale >mesh.NumCell0Ds-1  ) 
+			if (vertice_finale <0 || vertice_finale >mesh.Cell0D_num-1 || vertice_iniziale <0 || vertice_iniziale >mesh.Cell0D_num-1  ) 
 			throw runtime_error("ID dei vertici inseriti non validi. Inserire di nuovo tutti i parametri.");
 
 			Dijkstra(mesh, vertice_iniziale, vertice_finale);
@@ -87,25 +86,21 @@ int main () {
         string outfilename2D="Cell2Ds.txt";
         string outfilename3D="Cell3Ds.txt";
 		
-		std::cout << "NumCell0Ds = " << mesh.NumCell0Ds << ", size Cell0DsId = " << mesh.Cell0DsId.size() << ", Cell0DsCoordinates.cols() = " << mesh.Cell0DsCoordinates.cols() << std::endl;
-		std::cout << "NumCell1Ds = " << mesh.NumCell1Ds << ", size Cell1DsId = " << mesh.Cell1DsId.size() << ", Cell1DsExtrema.cols() = " << mesh.Cell1DsExtrema.cols() << std::endl;
-		std::cout << "NumCell2Ds = " << mesh.NumCell2Ds << ", size Cell2DsId = " << mesh.Cell2DsId.size() << std::endl;
+		std::cout << "Cell0D_num = " << mesh.Cell0D_num << ", size Cell0D_id = " << mesh.Cell0D_id.size() << ", Cell0D_coordinate.cols() = " << mesh.Cell0D_coordinate.cols() << std::endl;
+		std::cout << "Cell1D_num = " << mesh.Cell1D_num << ", size Cell1D_id = " << mesh.Cell1D_id.size() << ", Cell1D_estremi.cols() = " << mesh.Cell1D_estremi.cols() << std::endl;
+		std::cout << "Cell2D_num = " << mesh.Cell2D_num << ", size Cell2D_id = " << mesh.Cell2D_id.size() << std::endl;
 		
-		std::cout << "Cell2DsId.size() = " << mesh.Cell2DsId.size() << std::endl;
-		std::cout << "Cell2DsVertices.size() = " << mesh.Cell2DsVertices.size() << std::endl;
-		std::cout << "Cell2DsNumEdges.size() = " << mesh.Cell2DsNumEdges.size() << std::endl;
+		std::cout << "Cell2D_id.size() = " << mesh.Cell2D_id.size() << std::endl;
+		std::cout << "Cell2D_vertici.size() = " << mesh.Cell2D_vertici.size() << std::endl;
+		std::cout << "Cell2D_numLati.size() = " << mesh.Cell2D_numLati.size() << std::endl;
 		
-		GeneraTuttiFile(mesh, 
-                     outfilename0D,
-                     outfilename1D,
-                     outfilename2D,
-                     outfilename3D);
-
-        
-		/// Per visualizzare online le mesh:
-		/// 1. Convertire i file .inp in file .vtu con https://meshconverter.it/it
-		/// 2. Caricare il file .vtu su https://kitware.github.io/glance/app/
-
+		genera_tutti_file(mesh, 
+                          outfilename0D,
+                          outfilename1D,
+                          outfilename2D,
+                          outfilename3D);
+		
+		/// Per stampare su ParaView
 		Gedim::UCDUtilities utilities;
 		{
 			vector<Gedim::UCDProperty<double>> cell0Ds_properties(1);
@@ -115,15 +110,15 @@ int main () {
 			cell0Ds_properties[0].NumComponents = 1;
 			
 		
-			vector<double> cell0Ds_marker(mesh.NumCell0Ds, 0.0);
-			for(const auto& m : mesh.MarkerCell0Ds)
+			vector<double> cell0Ds_marker(mesh.Cell0D_num, 0.0);
+			for(const auto& m : mesh.Cell0D_marker)
 				for(const unsigned int id: m.second)
 					cell0Ds_marker.at(id) = m.first;
 
 			cell0Ds_properties[0].Data = cell0Ds_marker.data();
 
 			utilities.ExportPoints("./Cell0Ds.inp",
-								   mesh.Cell0DsCoordinates,
+								   mesh.Cell0D_coordinate,
 								   cell0Ds_properties);
 		}
 
@@ -136,16 +131,16 @@ int main () {
 			cell1Ds_properties[0].NumComponents = 1;
 			
 			
-			vector<double> cell1Ds_marker(mesh.NumCell1Ds, 0.0);
-			for(const auto &m : mesh.MarkerCell1Ds)
+			vector<double> cell1Ds_marker(mesh.Cell1D_num, 0.0);
+			for(const auto &m : mesh.Cell1D_marker)
 				for(const unsigned int id: m.second)
 					cell1Ds_marker.at(id) = m.first;
 
 			cell1Ds_properties[0].Data = cell1Ds_marker.data();
 
 			utilities.ExportSegments("./Cell1Ds.inp",
-									 mesh.Cell0DsCoordinates,
-									 mesh.Cell1DsExtrema,
+									 mesh.Cell0D_coordinate,
+									 mesh.Cell1D_estremi,
 									 {},
 									 cell1Ds_properties);
 		}

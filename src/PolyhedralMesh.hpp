@@ -4,10 +4,11 @@
 #include <map>
 #include <list>
 #include <Eigen/Dense>
-// #include <queue>  TOGLIERE
 
-/// Costruzione libreria PloyhedralLibrary
+
+/// Costruzione libreria PolyhedralLibrary
 namespace PolyhedralLibrary {   
+  
   struct PolyhedralMesh
   {
     /// Cell0D : vertici
@@ -36,9 +37,9 @@ namespace PolyhedralLibrary {
     std::vector<std::vector<int>> Cell3D_lati = {};   // vettore di vettori dei lati che compongono ciascun solido : dim 1 x Cell3D_num
     std::vector<std::vector<int>> Cell3D_facce = {};   // vettore di vettori di facce che compongono ciascun solido : dim 1 x Cell3D_num
     
-	/* === Cammino Minimo Path === TOGLIERE
+	/// Cammino minimo
   unsigned int num_archiPath = 0;
   double lunghezza_Path = 0.0;
-  */
+  
   };
 } 
