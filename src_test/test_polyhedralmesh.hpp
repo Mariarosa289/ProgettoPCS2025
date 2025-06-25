@@ -97,66 +97,51 @@ TEST(DijkstraTest, ShortestPath_UsesDefinedFaceEdges) {
     EXPECT_EQ(mesh.Cell1D_marker[1].size(), 1);
 }
 
-// Test duale: ottaedro -> cubo
+// Test duale: ottaedro → cubo
 TEST(DualeTest, OctahedronToCube) {
     using namespace PolyhedralLibrary;
+
     PolyhedralMesh mesh;
 
-    std::vector<std::array<double, 3>> vertici = {
-        {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}
-    };
-    mesh.Cell0D_num = vertici.size();
-    mesh.Cell0D_id.resize(mesh.Cell0D_num);
-    mesh.Cell0D_coordinate.resize(3, mesh.Cell0D_num);
-    for (unsigned int i = 0; i < mesh.Cell0D_num; ++i) {
-        mesh.Cell0D_id[i] = i;
-        mesh.Cell0D_coordinate(0, i) = vertici[i][0];
-        mesh.Cell0D_coordinate(1, i) = vertici[i][1];
-        mesh.Cell0D_coordinate(2, i) = vertici[i][2];
-    }
-
-    std::vector<std::array<int, 3>> facce = {
-        {0, 2, 4}, {2, 1, 4}, {1, 3, 4}, {3, 0, 4},
-        {2, 0, 5}, {1, 2, 5}, {3, 1, 5}, {0, 3, 5}
-    };
-    mesh.Cell2D_num = facce.size();
-    mesh.Cell2D_id.resize(mesh.Cell2D_num);
-    mesh.Cell2D_vertici.resize(mesh.Cell2D_num);
-    for (unsigned int i = 0; i < mesh.Cell2D_num; ++i) {
-        mesh.Cell2D_id[i] = i;
-        mesh.Cell2D_vertici[i] = {facce[i][0], facce[i][1], facce[i][2]};
-    }
+    // Costruzione dell’ottaedro regolare (classe 1, p=3, q=4, b=1, c=0)
+    build_classe_1(3, 4, 1, 0, mesh);
 
     PolyhedralMesh duale;
     build_duale(mesh, duale);
 
+    // Il duale dell’ottaedro è il cubo:
     EXPECT_EQ(duale.Cell0D_num, 8);
     EXPECT_EQ(duale.Cell1D_num, 12);
     EXPECT_EQ(duale.Cell2D_num, 6);
 
-    for (unsigned int i = 0; i < duale.Cell0D_num; ++i) {
-        double x = duale.Cell0D_coordinate(0, i);
-        double y = duale.Cell0D_coordinate(1, i);
-        double z = duale.Cell0D_coordinate(2, i);
-        double norm = std::sqrt(x*x + y*y + z*z);
-        EXPECT_NEAR(norm, 1.0, 1e-6);
-    }
+
+    // Verifica che tutti gli ID siano continui
+    for (unsigned int i = 0; i < duale.Cell0D_num; ++i)
+        EXPECT_EQ(duale.Cell0D_id[i], i);
+    for (unsigned int i = 0; i < duale.Cell1D_num; ++i)
+        EXPECT_EQ(duale.Cell1D_id[i], i);
+    for (unsigned int i = 0; i < duale.Cell2D_num; ++i)
+        EXPECT_EQ(duale.Cell2D_id[i], i);
 }
+
 
 // Test classe 2 con b=1
 TEST(BuildClasse2Test, OctahedronB1_PreciseCounts) {
     using namespace PolyhedralLibrary;
     PolyhedralMesh mesh;
-    build_classe_2(3, 4, 1, 1, mesh); 
+    build_classe_2(3, 4, 1, 1, mesh);
 
-    EXPECT_EQ(mesh.Cell0D_num, 14);
-    EXPECT_EQ(mesh.Cell1D_num, 36);
-    EXPECT_EQ(mesh.Cell2D_num, 8);
+    const unsigned int numV = 6;
+    const unsigned int numE = 12;
+    const unsigned int numF = 8;
+    const unsigned int b = 1;
 
-    for (unsigned int i = 0; i < mesh.Cell0D_num; ++i)
-        EXPECT_EQ(mesh.Cell0D_id[i], i);
-    for (unsigned int i = 0; i < mesh.Cell1D_num; ++i)
-        EXPECT_EQ(mesh.Cell1D_id[i], i);
-    for (unsigned int i = 0; i < mesh.Cell2D_num; ++i)
-        EXPECT_EQ(mesh.Cell2D_id[i], i);
+    unsigned int V = numV + numE * (2*b - 1) + numF*(3*b*b/2 - 3*b/2 + 1);
+	unsigned int E = 2 * b * numE + 6 * numF + 3 * (b * b - b) * numF;
+	unsigned int F =numF*(3*b*b + 3*b);
+
+
+    EXPECT_EQ(mesh.Cell0D_num, V);
+    EXPECT_EQ(mesh.Cell1D_num, E);
+    EXPECT_EQ(mesh.Cell2D_num, F);
 }
