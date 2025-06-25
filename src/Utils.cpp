@@ -533,7 +533,7 @@ void build_classe_2(unsigned int p,
                 set<unsigned int> v2 = {get<0>(sotto_triangoli[j]), get<1>(sotto_triangoli[j]), get<2>(sotto_triangoli[j])};
 
                 vector<unsigned int> vertici_condivisi;
-                set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(vertici_condivisi));   //i vertici identici
+                set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(vertici_condivisi));   //conta i vertici condivisi dai sottotriangoli
 
                 if (vertici_condivisi.size() == 2) {   // allora c'è  un lato in comune
                     unsigned int a = min(bari_id[i], bari_id[j]);
@@ -562,7 +562,7 @@ void build_classe_2(unsigned int p,
     // Ricostruzione mappa adiacenze
     unordered_map<unsigned int, unordered_set<unsigned int>> adiacenze;
 
-    for (const auto& [u, v] : archi) {
+    for (const auto& [u, v] : archi) { // trova tutti i vertici adiacenti ad un singolo vertice
         adiacenze[u].insert(v);
         adiacenze[v].insert(u);
     }
@@ -594,7 +594,7 @@ void build_classe_2(unsigned int p,
                 };
 
                 vector<int> edges;
-                bool arco_mancante = false;
+                bool arco_mancante = false; //tutti i lati esistono, quindi continua
                 for (auto& lato : lati) {
                     if (map1D.count(lato)) {edges.push_back(map1D[lato]);}
                     else {
