@@ -870,7 +870,7 @@ void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& duale) {
         baricentro /= static_cast<double>(geodetico.Cell2D_vertici[fid].size());
 
         // Proiezione sulla sfera unitaria
-        baricentro.normalized();
+        baricentro = baricentro.normalized();
 
         duale.Cell0D_id[fid] = fid;
         duale.Cell0D_coordinate.col(fid) = baricentro;
