@@ -638,7 +638,7 @@ void build_classe_2(unsigned int p,
     mesh.Cell2D_vertici.shrink_to_fit();
     mesh.Cell2D_numLati.shrink_to_fit();
 
-    // ATTENZIONE : valutare anche il shrink_to_fit per le altre Cell?
+   
 }
 
 
