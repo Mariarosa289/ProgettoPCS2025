@@ -203,7 +203,7 @@ void build_classe_1(unsigned int p,
         vector<vector<unsigned int>> griglia(b + 1);   // griglia triangolare
         for (unsigned int i = 0; i <= b; ++i) {
             griglia[i].resize(i + 1);   
-            for (unsigned int j = 0; j <= i; ++j) {   // ATTENZIONE: FORMULA?
+            for (unsigned int j = 0; j <= i; ++j) { 
                 double u = 1.0 - static_cast<double>(i) / b;   // static_cast per conversione sicura
                 double v = static_cast<double>(i - j) / b;
                 double w = static_cast<double>(j) / b;
@@ -254,7 +254,7 @@ void build_classe_1(unsigned int p,
                 mesh.Cell2D_numLati.push_back(lati_diFaccia.size());   //popolamento Cell2D_numLati
 
                 /// stesso popolamento, ma nel caso j < 1
-                if (j < i) {   //ATTENZIONE: che dice la condizione?
+                if (j < i) {   // per i sotto-triangoli capovolti
                     unsigned int v4 = griglia[i][j+1];
                     mesh.Cell2D_id.push_back(fid++);  
                     mesh.Cell2D_vertici.push_back({(int)v1, (int)v3, (int)v4});  
@@ -315,8 +315,6 @@ void build_classe_1(unsigned int p,
     mesh.Cell2D_lati.shrink_to_fit();
     mesh.Cell2D_vertici.shrink_to_fit();
     mesh.Cell2D_numLati.shrink_to_fit();  
-
-    // ATTENZIONE: fare lo shrink_to_fit anche per le altre Cell?
 }
 
 
@@ -640,7 +638,7 @@ void build_classe_2(unsigned int p,
     mesh.Cell2D_vertici.shrink_to_fit();
     mesh.Cell2D_numLati.shrink_to_fit();
 
-    // ATTENZIONE : valutare anche il shrink_to_fit per le altre Cell?
+   
 }
 
 
@@ -872,7 +870,7 @@ void build_duale(const PolyhedralMesh& geodetico, PolyhedralMesh& duale) {
         baricentro /= static_cast<double>(geodetico.Cell2D_vertici[fid].size());
 
         // Proiezione sulla sfera unitaria
-        baricentro.normalized();
+        baricentro = baricentro.normalized();
 
         duale.Cell0D_id[fid] = fid;
         duale.Cell0D_coordinate.col(fid) = baricentro;
